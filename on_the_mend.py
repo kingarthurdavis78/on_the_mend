@@ -3,6 +3,7 @@ from pygame.locals import *
 import math
 
 pygame.init()
+clock = pygame.time.Clock()
 
 #Create a displace surface object
 screen = pygame.display.set_mode((1000, 1000))
@@ -16,6 +17,7 @@ speed = [0, 0]
 direction = "RIGHT"
 movement_counter = 0
 step = "left"
+speed_increment = 2
 
 target = pygame.image.load("target.gif")
 target = pygame.transform.scale(target, (50, 50))
@@ -37,28 +39,28 @@ root_two = math.sqrt(2)
 
 def get_speed(counter):
     if pygame.key.get_pressed()[K_w] and pygame.key.get_pressed()[K_d]:
-        speed = [root_two, -root_two]
+        speed = [root_two * speed_increment, -root_two * speed_increment]
         counter += 1
     elif pygame.key.get_pressed()[K_s] and pygame.key.get_pressed()[K_d]:
-        speed = [root_two, root_two]
+        speed = [root_two * speed_increment, root_two * speed_increment]
         counter += 1
     elif pygame.key.get_pressed()[K_s] and pygame.key.get_pressed()[K_a]:
-        speed = [-root_two, root_two]
+        speed = [-root_two * speed_increment, root_two * speed_increment]
         counter += 1
     elif pygame.key.get_pressed()[K_a] and pygame.key.get_pressed()[K_w]:
-        speed = [-root_two, -root_two]
+        speed = [-root_two * speed_increment, -root_two * speed_increment]
         counter += 1
     elif pygame.key.get_pressed()[K_w]:
-        speed = [0, -1]
+        speed = [0, -speed_increment]
         counter += 1
     elif pygame.key.get_pressed()[K_d]:
-        speed = [1, 0]
+        speed = [speed_increment, 0]
         counter += 1
     elif pygame.key.get_pressed()[K_s]:
-        speed = [0, 1]
+        speed = [0, speed_increment]
         counter += 1
     elif pygame.key.get_pressed()[K_a]:
-        speed = [-1, 0]
+        speed = [-speed_increment, 0]
         counter += 1
     else:
         speed = [0, 0]
@@ -88,7 +90,7 @@ def get_step(step_direction, counter):
 
 
 def paint_bob(speed, step):
-    if speed == [0, 0]:
+    if speed == [0.0, 0.0]:
         screen.blit(bob, bobrect)
     elif step == "left":
         screen.blit(bob_left_step, bobrect)
@@ -101,6 +103,7 @@ while mainLoop:
         if event.type == pygame.QUIT:
             mainLoop = False
 
+    dt = clock.tick(60)
     # Bob
     speed, movement_counter = get_speed(movement_counter)
     direction, bob, bob_left_step, bob_right_step = get_direction(direction)
@@ -110,10 +113,10 @@ while mainLoop:
     paint_bob(speed, step)
     bobrect = bobrect.move(speed)
 
+
     # in your main loop update the position every frame and blit the image
     target_rect.center = pygame.mouse.get_pos()  # update position
     screen.blit(target, target_rect)  # draw the cursor
-
     pygame.display.update()
 
 pygame.quit()
