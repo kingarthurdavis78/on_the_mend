@@ -49,6 +49,10 @@ zombie_facing_left_right_step = pygame.image.load("zombie-facing-left-right-foot
 zombie_facing_left_right_step = pygame.transform.scale(zombie_facing_left_right_step, (unit_length, 2 * unit_length))
 
 
+def norm(dy, dx):
+    return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+
+
 class Bob:
     def __init__(self, rect, count, step, speed, gun):
         self.rect = rect
@@ -140,8 +144,7 @@ class Zombie:
     def get_speed(self, bob_rect):
         dx = bob_rect.center[0] - self.rect.center[0]
         dy = bob_rect.center[1] - self.rect.center[1]
-        norm = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
-        return self.speed * dx / norm, self.speed * dy / norm
+        return self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)
 
     def get_step(self):
         if self.step == "left":
@@ -163,12 +166,38 @@ class Zombie:
                 screen.blit(zombie_facing_left_right_step, self.rect)
 
 
+class Bullet:
+    def __init__(self, velocity, speed, x, y):
+        self.velocity = velocity
+        self.speed = speed
+        self.rect = pygame.Rect((x, y), (unit_length/6, unit_length/6))
+
+    def x(self):
+        return self.rect.center[0]
+
+    def y(self):
+        return self.rect.center[1]
+
+    def paint(self):
+        pygame.draw.rect(screen, (255, 255, 0), self.rect)
+
+
 def is_hit(bob, zombie):
     dx = pygame.mouse.get_pos()[0] - bob.x()
     dy = pygame.mouse.get_pos()[1] - bob.y()
-    norm = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
-    line = pygame.draw.line(screen, (0, 0, 0), bob.rect.center, (bob.x() + screen_width * (dx / norm), bob.y() + screen_width * (dy / norm)))
+    line = pygame.draw.line(screen, (0, 0, 0), bob.rect.center, (bob.x() + screen_width * (dx / norm(dy, dx)), bob.y() + screen_width * (dy / norm(dy, dx))))
     if zombie.rect.colliderect(line):
         return True
     else:
         return False
+
+
+def is_hit2(bob, zombie):
+    dx = pygame.mouse.get_pos()[0] - bob.x()
+    dy = pygame.mouse.get_pos()[1] - bob.y()
+    pygame.draw.line(screen, (0, 0, 0), bob.rect.center, (bob.x() + screen_width * (dx / norm(dy, dx)), bob.y() + screen_width * (dy / norm(dy, dx))))
+    for i in range(bob.x(), bob.x() + int(screen_width * (dx / norm(dy, dx)))):
+        for j in range(bob.y(), bob.y() + int(screen_width * (dy / norm(dy, dx)))):
+            if abs(zombie.x() - i) < unit_length and abs(zombie.y() - j) < 2 * unit_length:
+                return True
+    return False
