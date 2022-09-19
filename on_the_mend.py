@@ -22,7 +22,7 @@ target_rect = target.get_rect()
 bob_rect = pygame.Rect((screen_width / 2, screen_height / 2), (unit_length, 2 * unit_length))
 
 
-def generate_new_zombie():
+def generate_new_zombie(speed):
     side = random.choice(["top", "top", "top", "top", "bottom", "bottom", "bottom", "bottom", "left", "left", "left", "right", "right", "right"])
     if side == "top":
         x = random.randint(0, screen_width)
@@ -37,10 +37,10 @@ def generate_new_zombie():
         x = screen_width + unit_length
         y = random.randint(0, screen_height)
     rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
-    return Zombie(rect, 0, "left")
+    return Zombie(rect, 0, "left", speed)
 
 
-zombies = [generate_new_zombie()]
+zombies = [generate_new_zombie(0.14)]
 
 bob = Bob(bob_rect, 0, "left", 0.3, "pistol")
 
@@ -73,7 +73,7 @@ while mainLoop:
 
     if pygame.time.get_ticks() > next_zombie:
         next_zombie += 2000
-        zombies.append(generate_new_zombie())
+        zombies.append(generate_new_zombie(0.14))
 
 
 

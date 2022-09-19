@@ -117,10 +117,11 @@ class Bob:
 
 
 class Zombie:
-    def __init__(self, rect, count, step):
+    def __init__(self, rect, count, step, speed):
         self.rect = rect
         self.count = count
         self.step = step
+        self.speed = speed
 
     def x(self):
         return self.rect.center[0]
@@ -132,7 +133,7 @@ class Zombie:
         dx = bob_rect.center[0] - self.rect.center[0]
         dy = bob_rect.center[1] - self.rect.center[1]
         norm = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
-        return zombie_speed_constant * dx / norm, zombie_speed_constant * dy / norm
+        return self.speed * dx / norm, self.speed * dy / norm
 
     def get_step(self):
         if self.step == "left":
