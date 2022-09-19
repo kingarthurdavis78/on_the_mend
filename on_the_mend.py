@@ -1,6 +1,6 @@
 import pygame, sys
 from pygame.locals import *
-from game_logic import Bob, Zombie, screen, unit_length, screen_width, screen_height, next_zombie
+from game_logic import Bob, Zombie, screen, unit_length, screen_width, screen_height, next_zombie, is_hit
 import random
 
 pygame.init()
@@ -40,6 +40,8 @@ def generate_new_zombie(speed):
     return Zombie(rect, 0, "left", speed)
 
 
+
+
 zombies = [generate_new_zombie(0.14)]
 
 bob = Bob(bob_rect, 0, "left", 0.3, "pistol")
@@ -54,7 +56,6 @@ while mainLoop:
 
     screen.fill(background)
 
-
     # Bob
     bob.get_velocity(dt)
     bob.get_direction()
@@ -64,6 +65,14 @@ while mainLoop:
     bob.rect = bob.rect.move([t * dt for t in bob.velocity])
 
     # Zombies
+    bob.reload += dt
+    if pygame.mouse.get_pressed()[0] and bob.reload > 1000:
+        bob.reload = 0
+        for zombie in zombies:
+            if is_hit(bob, zombie):
+                zombies.remove(zombie)
+                del zombie
+
     for zombie in zombies:
         zombie.rect = zombie.rect.move([t * dt for t in zombie.get_speed(bob.rect)])
         zombie.count += 1
@@ -75,11 +84,11 @@ while mainLoop:
         next_zombie += 2000
         zombies.append(generate_new_zombie(0.14))
 
-
-
     # Crosshair
     target_rect.center = pygame.mouse.get_pos()  # update position
     screen.blit(target, target_rect)  # draw the cursor
+
+
 
     pygame.display.update()
     if pygame.key.get_pressed()[K_ESCAPE]:

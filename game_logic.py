@@ -13,6 +13,7 @@ screen_width, screen_height = screen.get_size()
 unit_length = screen_width / 40
 
 gun = "pistol"
+reload = 0
 
 # Load Bob Pictures
 bob_facing_right_still = pygame.image.load(f"bob-{gun}-facing-right-still.gif")
@@ -55,9 +56,16 @@ class Bob:
         self.step = step
         self.speed = speed
         self.velocity = [0, 0]
+        self.reload = 0
         self.gun = gun
         self.direction = "right"
         self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
+
+    def x(self):
+        return self.rect.center[0]
+
+    def y(self):
+        return self.rect.center[1]
 
     def get_velocity(self, dt):
         if pygame.key.get_pressed()[K_w] and pygame.key.get_pressed()[K_d]:
@@ -155,3 +163,12 @@ class Zombie:
                 screen.blit(zombie_facing_left_right_step, self.rect)
 
 
+def is_hit(bob, zombie):
+    dx = pygame.mouse.get_pos()[0] - bob.x()
+    dy = pygame.mouse.get_pos()[1] - bob.y()
+    norm = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+    line = pygame.draw.line(screen, (0, 0, 0), bob.rect.center, (bob.x() + screen_width * (dx / norm), bob.y() + screen_width * (dy / norm)))
+    if zombie.rect.colliderect(line):
+        return True
+    else:
+        return False
