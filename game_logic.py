@@ -1,19 +1,19 @@
 import math
-import pygame, sys
+import pygame
 from pygame.locals import *
+import random
 
 # Square Root of 2
 root_two = math.sqrt(2)
-
-zombie_speed_constant = 0.14
-next_zombie = 2000
 
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_width, screen_height = screen.get_size()
 unit_length = screen_width / 40
 
+zombie_frequency = 400
+zombie_timer = 0
+
 gun = "pistol"
-reload = 0
 
 # Load Bob Pictures
 bob_facing_right_still = pygame.image.load(f"bob-{gun}-facing-right-still.gif")
@@ -54,13 +54,12 @@ def norm(dy, dx):
 
 
 class Bob:
-    def __init__(self, rect, count, step, speed, gun):
-        self.rect = rect
+    def __init__(self, count, step, speed, gun):
+        self.rect = pygame.Rect((screen_width / 2, screen_height / 2), (unit_length, 2 * unit_length))
         self.count = count
         self.step = step
         self.speed = speed
         self.velocity = [0, 0]
-        self.reload = 0
         self.gun = gun
         self.direction = "right"
         self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
@@ -182,22 +181,46 @@ class Bullet:
         pygame.draw.rect(screen, (255, 255, 0), self.rect)
 
 
-def is_hit(bob, zombie):
+class Gun:
+    def __init__(self, name, speed, reload_time):
+        self.name = name
+        self.speed = speed
+        self.reload_counter = 0
+        self.reload_time = reload_time
+
+
+class Crosshair:
+    image = pygame.transform.scale(pygame.image.load("target.gif"), (5 * unit_length / 6, 5 * unit_length / 6))
+
+    def __init__(self, image):
+        self.rect = image.get_rect()
+
+    def paint(self):
+        screen.blit(self.image, self.rect)
+
+
+def new_bullet(bob, speed):
     dx = pygame.mouse.get_pos()[0] - bob.x()
     dy = pygame.mouse.get_pos()[1] - bob.y()
-    line = pygame.draw.line(screen, (0, 0, 0), bob.rect.center, (bob.x() + screen_width * (dx / norm(dy, dx)), bob.y() + screen_width * (dy / norm(dy, dx))))
-    if zombie.rect.colliderect(line):
-        return True
+    bob.reload = 0
+    bullet_vector = [dx / norm(dy, dx), dy / norm(dy, dx)]
+    return Bullet(bullet_vector, speed, bob.x(), bob.y())
+
+
+def generate_new_zombie(speed):
+    side = random.choice(["top", "top", "top", "top", "bottom", "bottom", "bottom", "bottom", "left", "left", "left", "right", "right", "right"])
+    if side == "top":
+        x = random.randint(0, screen_width)
+        y = -2 * unit_length
+    elif side == "bottom":
+        x = random.randint(0, screen_width)
+        y = screen_height + 2 * unit_length
+    elif side == "left":
+        x = -unit_length
+        y = random.randint(0, screen_height)
     else:
-        return False
+        x = screen_width + unit_length
+        y = random.randint(0, screen_height)
+    rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
+    return Zombie(rect, 0, "left", speed)
 
-
-def is_hit2(bob, zombie):
-    dx = pygame.mouse.get_pos()[0] - bob.x()
-    dy = pygame.mouse.get_pos()[1] - bob.y()
-    pygame.draw.line(screen, (0, 0, 0), bob.rect.center, (bob.x() + screen_width * (dx / norm(dy, dx)), bob.y() + screen_width * (dy / norm(dy, dx))))
-    for i in range(bob.x(), bob.x() + int(screen_width * (dx / norm(dy, dx)))):
-        for j in range(bob.y(), bob.y() + int(screen_width * (dy / norm(dy, dx)))):
-            if abs(zombie.x() - i) < unit_length and abs(zombie.y() - j) < 2 * unit_length:
-                return True
-    return False

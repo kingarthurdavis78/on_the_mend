@@ -1,7 +1,6 @@
-import pygame, sys
+import pygame
 from pygame.locals import *
-from game_logic import Bob, Zombie, screen, unit_length, screen_width, screen_height, next_zombie, is_hit, is_hit2, Bullet, norm
-import random
+from game_logic import Bob, screen, screen_width, screen_height, new_bullet, Gun, generate_new_zombie, zombie_timer, zombie_frequency, Crosshair
 
 pygame.init()
 
@@ -11,38 +10,11 @@ pygame.mouse.set_visible(False)
 mainLoop = True
 background = 150, 150, 150
 
-
-# Load Crosshair
-
-target = pygame.image.load("target.gif")
-target = pygame.transform.scale(target, (5 * unit_length / 6, 5 * unit_length / 6))
-target_rect = target.get_rect()
-
-
-bob_rect = pygame.Rect((screen_width / 2, screen_height / 2), (unit_length, 2 * unit_length))
-
-
-def generate_new_zombie(speed):
-    side = random.choice(["top", "top", "top", "top", "bottom", "bottom", "bottom", "bottom", "left", "left", "left", "right", "right", "right"])
-    if side == "top":
-        x = random.randint(0, screen_width)
-        y = -2 * unit_length
-    elif side == "bottom":
-        x = random.randint(0, screen_width)
-        y = screen_height + 2 * unit_length
-    elif side == "left":
-        x = -unit_length
-        y = random.randint(0, screen_height)
-    else:
-        x = screen_width + unit_length
-        y = random.randint(0, screen_height)
-    rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
-    return Zombie(rect, 0, "left", speed)
-
-
-bob = Bob(bob_rect, 0, "left", 0.3, "pistol")
+gun = Gun("pistol", 1, 600)
+bob = Bob(0, "left", 0.3, gun)
 zombies = [generate_new_zombie(0.14)]
 bullets = []
+crosshair = Crosshair(Crosshair.image)
 
 died = False
 while mainLoop:
@@ -56,13 +28,10 @@ while mainLoop:
     screen.fill(background)
 
     # Bullets
-    bob.reload += dt
-    if pygame.mouse.get_pressed()[0] and bob.reload > 400:
-        dx = pygame.mouse.get_pos()[0] - bob.x()
-        dy = pygame.mouse.get_pos()[1] - bob.y()
-        bob.reload = 0
-        bullet_vector = [dx / norm(dy, dx), dy / norm(dy, dx)]
-        bullets.append(Bullet(bullet_vector, 1, bob.x(), bob.y()))
+    bob.gun.reload_counter += dt
+    if pygame.mouse.get_pressed()[0] and bob.gun.reload_counter > bob.gun.reload_time:
+        bob.gun.reload_counter = 0
+        bullets.append(new_bullet(bob, bob.gun.speed))
 
     for bullet in bullets:
         deleted = False
@@ -83,7 +52,7 @@ while mainLoop:
                 deleted = True
                 break
         if not deleted:
-            bullet.rect = bullet.rect.move([v * dt for v in bullet.velocity])
+            bullet.rect = bullet.rect.move([v * dt * bullet.speed for v in bullet.velocity])
             bullet.paint()
 
 
@@ -92,8 +61,8 @@ while mainLoop:
     bob.get_direction()
     if bob.count > 200:
         bob.get_step()
-    bob.paint()
     bob.rect = bob.rect.move([v * dt for v in bob.velocity])
+    bob.paint()
 
     # Zombies
     for zombie in zombies:
@@ -105,13 +74,13 @@ while mainLoop:
             zombie.get_step()
         zombie.paint(bob.rect)
 
-    if pygame.time.get_ticks() > next_zombie:
-        next_zombie += 700
+    if pygame.time.get_ticks() > zombie_timer:
+        zombie_timer += zombie_frequency
         zombies.append(generate_new_zombie(0.14))
 
     # Crosshair
-    target_rect.center = pygame.mouse.get_pos()  # update position
-    screen.blit(target, target_rect)  # draw the cursor
+    crosshair.rect.center = pygame.mouse.get_pos()  # update position
+    screen.blit(crosshair.image, crosshair.rect)  # draw the cursor
 
     pygame.display.update()
     if pygame.key.get_pressed()[K_ESCAPE] or died:
