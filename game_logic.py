@@ -49,6 +49,13 @@ zombie_facing_left_right_step = pygame.image.load("zombie-facing-left-right-foot
 zombie_facing_left_right_step = pygame.transform.scale(zombie_facing_left_right_step, (unit_length, 2 * unit_length))
 
 
+colors_to_rgb = {}
+colors_to_rgb["red"] = (255, 0, 0)
+colors_to_rgb["blue"] = (0, 0, 255)
+colors_to_rgb["yellow"] = (255, 255, 0)
+colors_to_rgb["pink"] = (255, 0, 255)
+colors_to_rgb["green"] = (0, 255, 0)
+
 def norm(dy, dx):
     return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
 
@@ -67,6 +74,8 @@ class Bob:
         self.crosshair = crosshair
         self.cross_dx = 0
         self.cross_dy = 0
+        self.health = 100
+        self.is_alive = True
 
     def x(self):
         return self.rect.center[0]
@@ -139,6 +148,10 @@ class Bob:
             return True
         return False
 
+    def paint_health(self, index, num_players):
+        color = colors_to_rgb[self.crosshair.color]
+        pygame.draw.rect(screen, color, (index * int((self.health * (screen_width / num_players)) / 100), screen_height - int(screen_height / 20), int((self.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
+
 
 class Bob_Joystick_USB:
     def __init__(self, player_name, x, y, count, step, speed, gun, joystick, crosshair):
@@ -155,6 +168,8 @@ class Bob_Joystick_USB:
         self.crosshair = crosshair
         self.cross_dx = 1
         self.cross_dy = 0
+        self.health = 100
+        self.is_alive = True
 
     def x(self):
         return self.rect.centerx
@@ -213,6 +228,10 @@ class Bob_Joystick_USB:
             return True
         return False
 
+    def paint_health(self, index, num_players):
+        color = colors_to_rgb[self.crosshair.color]
+        pygame.draw.rect(screen, color, (index * int(screen_width / num_players), screen_height - int(screen_height / 20), int((self.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
+
 
 class Bob_Joystick_Bluetooth:
     def __init__(self, player_name, x, y, count, step, speed, gun, joystick, crosshair):
@@ -229,6 +248,8 @@ class Bob_Joystick_Bluetooth:
         self.crosshair = crosshair
         self.cross_dx = 1
         self.cross_dy = 0
+        self.health = 100
+        self.is_alive = True
 
     def x(self):
         return self.rect.centerx
@@ -295,6 +316,12 @@ class Bob_Joystick_Bluetooth:
             return True
         return False
 
+    def paint_health(self, index, num_players):
+        color = colors_to_rgb[self.crosshair.color]
+        pygame.draw.rect(screen, color, (
+        index * int(screen_width / num_players), screen_height - int(screen_height / 20),
+        int((self.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
+
 
 class Zombie:
 
@@ -309,6 +336,7 @@ class Zombie:
         self.count = count
         self.step = step
         self.speed = speed
+        self.health = 3
 
     def x(self):
         return self.rect.center[0]
@@ -319,7 +347,10 @@ class Zombie:
     def get_speed(self, bob_rect):
         dx = bob_rect.centerx - self.rect.centerx
         dy = bob_rect.centery - self.rect.centery
-        return self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)
+        if norm(dy, dx) == 0:
+            return 0, 0
+        else:
+            return self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)
 
     def get_step(self):
         if self.step == "left":
@@ -344,12 +375,13 @@ class Zombie:
         closest_bob = None
         shortest_distance = 1000000000
         for bob in bobs:
-            dx = bob.rect.centerx - self.rect.centerx
-            dy = bob.rect.centery - self.rect.centery
-            distance = math.sqrt(pow(dx, 2) + pow(dy, 2))
-            if distance < shortest_distance:
-                shortest_distance = distance
-                closest_bob = bob
+            if bob.is_alive:
+                dx = bob.rect.centerx - self.rect.centerx
+                dy = bob.rect.centery - self.rect.centery
+                distance = math.sqrt(pow(dx, 2) + pow(dy, 2))
+                if distance < shortest_distance:
+                    shortest_distance = distance
+                    closest_bob = bob
         return closest_bob
 
 
@@ -382,6 +414,7 @@ class Crosshair:
 
     def __init__(self, id, color):
         self.id = id
+        self.color = color
         self.image = pygame.transform.scale(pygame.image.load(f"{color}_crosshair.gif"), (5 * unit_length / 6, 5 * unit_length / 6))
         self.rect = self.image.get_rect()
 
@@ -439,3 +472,4 @@ def paint_bullets(bullets, zombies, dt):
             bullet.rect = bullet.rect.move([v * dt * bullet.speed for v in bullet.velocity])
             bullet.paint()
     return bullets, zombies
+
