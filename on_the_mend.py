@@ -4,12 +4,6 @@ from pygame.locals import *
 import platform
 from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_Bluetooth, screen, screen_width, screen_height, new_bullet, Gun, generate_new_zombie, zombie_timer, zombie_frequency, Crosshair, paint_bullets
 
-# Detect what type of controllers to expect
-if int(platform.release()[:2]) < 20:
-    Controller = Bob_Joystick_USB
-else:
-    Controller = Bob_Joystick_Bluetooth
-
 pygame.init()
 
 clock = pygame.time.Clock()
@@ -34,7 +28,7 @@ colors = ["red", "blue", "yellow", "pink", "green"]
 crosshairs = []
 guns = []
 for i in range(num_players):
-    guns.append(Gun(i, 1, 300))
+    guns.append(Gun(i, 1 / num_players, 600))
     crosshairs.append(Crosshair(i, colors[i]))
 
 bobs = []
@@ -52,11 +46,20 @@ zombies = []
 connected = False
 died = False
 while mainLoop:
+
+    # Initialize controllers
     if len(bobs) <= num_players and not connected:
         joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
         try:
-            for i in range(controller_count):
-                bobs.append(Controller(i, screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
+            bt = 0
+            for joystick in joysticks:
+                if "wireless" in joystick.get_name().lower():
+                    bt += 1
+            usb = controller_count - bt
+            for i in range(bt):
+                bobs.append(Bob_Joystick_Bluetooth(i, screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
+            for i in range(usb):
+                bobs.append(Bob_Joystick_USB(i, screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
         except IndexError:
             pass
         if len(bobs) == num_players:
@@ -93,7 +96,6 @@ while mainLoop:
 
     # Bobs
     for bob in bobs:
-
         # Check if bob died
         for zombie in zombies:
             if bob.rect.colliderect(zombie.rect):
@@ -108,7 +110,6 @@ while mainLoop:
 
         # Paint bob
         bob.paint()
-
         # Bobs' Bullets
         bob.gun.reload_counter += dt
         if bob.shoot() and bob.gun.reload_counter > bob.gun.reload_time:
