@@ -17,11 +17,12 @@ background = 150, 150, 150
 
 num_players = 3
 
+colors = ["red", "blue", "yellow", "pink", "green"]
 crosshairs = []
 guns = []
 for i in range(num_players + 1):
     guns.append(Gun(i, 1, 300))
-    crosshairs.append(Crosshair(i, Crosshair.image))
+    crosshairs.append(Crosshair(i, colors[i]))
 
 
 bobs = [Bob("base", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[0], crosshairs[0])]

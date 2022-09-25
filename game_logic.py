@@ -450,11 +450,11 @@ class Gun:
 
 
 class Crosshair:
-    image = pygame.transform.scale(pygame.image.load("target.gif"), (5 * unit_length / 6, 5 * unit_length / 6))
 
-    def __init__(self, id, image):
+    def __init__(self, id, color):
         self.id = id
-        self.rect = image.get_rect()
+        self.image = pygame.transform.scale(pygame.image.load(f"{color}_crosshair.gif"), (5 * unit_length / 6, 5 * unit_length / 6))
+        self.rect = self.image.get_rect()
 
     def paint(self):
         screen.blit(self.image, self.rect)
