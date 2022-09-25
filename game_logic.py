@@ -140,99 +140,7 @@ class Bob:
         return False
 
 
-class Bob_M1:
-    def __init__(self, player_name, x, y, count, step, speed, gun, crosshair):
-        self.player_name = player_name
-        self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
-        self.count = count
-        self.step = step
-        self.speed = speed
-        self.velocity = [0, 0]
-        self.gun = gun
-        self.direction = "right"
-        self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
-        self.crosshair = crosshair
-        self.cross_dx = 0
-        self.cross_dy = 1
-
-    def x(self):
-        return self.rect.center[0]
-
-    def y(self):
-        return self.rect.center[1]
-
-    def get_velocity(self, dt):
-        if pygame.key.get_pressed()[K_w] and pygame.key.get_pressed()[K_d]:
-            self.velocity = [self.speed / root_two, -self.speed / root_two]
-            self.count += dt
-        elif pygame.key.get_pressed()[K_s] and pygame.key.get_pressed()[K_d]:
-            self.velocity = [self.speed / root_two, self.speed / root_two]
-            self.count += dt
-        elif pygame.key.get_pressed()[K_s] and pygame.key.get_pressed()[K_a]:
-            self.velocity = [-self.speed / root_two, self.speed / root_two]
-            self.count += dt
-        elif pygame.key.get_pressed()[K_a] and pygame.key.get_pressed()[K_w]:
-            self.velocity = [-self.speed / root_two, -self.speed / root_two]
-            self.count += dt
-        elif pygame.key.get_pressed()[K_w]:
-            self.velocity = [0, -self.speed]
-            self.count += dt
-        elif pygame.key.get_pressed()[K_d]:
-            self.velocity = [self.speed, 0]
-            self.count += dt
-        elif pygame.key.get_pressed()[K_s]:
-            self.velocity = [0, self.speed]
-            self.count += dt
-        elif pygame.key.get_pressed()[K_a]:
-            self.velocity = [-self.speed, 0]
-            self.count += dt
-        else:
-            self.velocity = [0, 0]
-
-        if pygame.key.get_pressed()[K_w] and pygame.key.get_pressed()[K_s]:
-            self.velocity[1] = 0
-        if pygame.key.get_pressed()[K_a] and pygame.key.get_pressed()[K_d]:
-            self.velocity[0] = 0
-
-    def get_direction(self):
-        if self.crosshair.rect.centerx <= self.rect.centerx and self.direction == "right":
-            self.direction = "left"
-            self.images = [bob_facing_left_still, bob_facing_left_left_step, bob_facing_left_right_step]
-        elif self.crosshair.rect.centerx > self.rect.centerx and self.direction == "left":
-            self.direction = "right"
-            self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
-
-    def get_step(self):
-        if self.step == "left":
-            self.step = "right"
-        else:
-            self.step = "left"
-        self.count = 0
-
-    def paint(self):
-        if self.velocity == [0, 0]:
-            screen.blit(self.images[0], self.rect)
-        elif self.step == "left":
-            screen.blit(self.images[1], self.rect)
-        elif self.step == "right":
-            screen.blit(self.images[2], self.rect)
-
-    def update_crosshair(self, past_dx, past_dy):
-        dx, dy = pygame.mouse.get_rel()
-        if abs(dx) < 0.05 and abs(dy) < 0.05:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
-                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
-            return past_dx, past_dy
-        else:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
-                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
-            return dx, dy
-
-    def shoot(self):
-        return pygame.key.get_pressed()[K_x]
-
-
-class Bob_Joystick1:
+class Bob_Joystick_USB:
     def __init__(self, player_name, x, y, count, step, speed, gun, joystick, crosshair):
         self.player_name = player_name
         self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
@@ -268,10 +176,10 @@ class Bob_Joystick1:
             self.count += dt
 
     def get_direction(self):
-        if self.joystick.get_axis(2) < 0 and self.direction == "right":
+        if self.crosshair.rect.centerx < self.rect.centerx and self.direction == "right":
             self.direction = "left"
             self.images = [bob_facing_left_still, bob_facing_left_left_step, bob_facing_left_right_step]
-        if self.joystick.get_axis(2) >= 0 and self.direction == "left":
+        if self.crosshair.rect.centerx > self.rect.centerx and self.direction == "left":
             self.direction = "right"
             self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
 
@@ -306,7 +214,7 @@ class Bob_Joystick1:
         return False
 
 
-class Bob_Joystick2:
+class Bob_Joystick_Bluetooth:
     def __init__(self, player_name, x, y, count, step, speed, gun, joystick, crosshair):
         self.player_name = player_name
         self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
@@ -342,10 +250,10 @@ class Bob_Joystick2:
             self.count += dt
 
     def get_direction(self):
-        if self.joystick.get_axis(0) < 0 and self.direction == "right":
+        if self.crosshair.rect.centerx < self.rect.centerx and self.direction == "right":
             self.direction = "left"
             self.images = [bob_facing_left_still, bob_facing_left_left_step, bob_facing_left_right_step]
-        if self.joystick.get_axis(0) >= 0 and self.direction == "left":
+        if self.crosshair.rect.centerx >= self.rect.centerx and self.direction == "left":
             self.direction = "right"
             self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
 
@@ -423,6 +331,19 @@ class Zombie:
                 screen.blit(zombie_facing_right_right_step, self.rect)
             else:
                 screen.blit(zombie_facing_left_right_step, self.rect)
+
+    def find_closest_bob(self, bobs):
+        closest_bob = None
+        shortest_distance = 1000000000
+        for bob in bobs:
+            dx = bob.rect.centerx - self.rect.centerx
+            dy = bob.rect.centery - self.rect.centery
+            distance = math.sqrt(pow(dx, 2) + pow(dy, 2))
+            if distance < shortest_distance:
+                shortest_distance = distance
+                closest_bob = bob
+        return closest_bob
+
 
 
 class Bullet:
