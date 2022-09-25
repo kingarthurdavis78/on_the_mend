@@ -47,12 +47,14 @@ clock = pygame.time.Clock()
 # Initialize the joysticks.
 pygame.joystick.init()
 
+
+
 # Get ready to print.
 textPrint = TextPrint()
 
+
 # -------- Main Program Loop -----------
 while not done:
-    #
     # EVENT PROCESSING STEP
     #
     # Possible joystick actions: JOYAXISMOTION, JOYBALLMOTION, JOYBUTTONDOWN,
@@ -64,6 +66,9 @@ while not done:
             print("Joystick button pressed.")
         elif event.type == pygame.JOYBUTTONUP:
             print("Joystick button released.")
+        elif event.type == pygame.MOUSEWHEEL:
+            print(event)
+
 
     #
     # DRAWING STEP
@@ -75,6 +80,7 @@ while not done:
 
     # Get count of joysticks.
     joystick_count = pygame.joystick.get_count()
+
 
     textPrint.tprint(screen, "Number of joysticks: {}".format(joystick_count))
     textPrint.indent()
