@@ -7,6 +7,7 @@ from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_Bluetooth, screen, sc
 
 pygame.init()
 
+difficulty = 0
 clock = pygame.time.Clock()
 
 pygame.joystick.init()
@@ -30,7 +31,7 @@ colors = ["red", "blue", "yellow", "pink", "green"]
 crosshairs = []
 guns = []
 for i in range(num_players):
-    guns.append(Gun(i, 1 / num_players, 100))
+    guns.append(Gun(i, 1 / num_players, 200))
     crosshairs.append(Crosshair(i, colors[i]))
 
 bobs = []
@@ -42,9 +43,13 @@ if keyboard_controls:
 else:
     controller_count = num_players
 
+usb_count = pygame.joystick.get_count()
+joysticks = [pygame.joystick.Joystick(x) for x in range(usb_count)]
+for i in range(usb_count):
+    bobs.append(Bob_Joystick_USB(f"USB Controller {i}", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
+
 bullets = []
 zombies = []
-
 
 connected = False
 died = False
@@ -54,15 +59,8 @@ while mainLoop:
     if len(bobs) <= num_players and not connected:
         joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
         try:
-            bt = 0
-            for joystick in joysticks:
-                if "wireless" in joystick.get_name().lower():
-                    bt += 1
-            usb = controller_count - bt
-            for i in range(bt):
+            for i in range(usb_count, controller_count):
                 bobs.append(Bob_Joystick_Bluetooth(f"Wireless Controller {i}", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
-            for i in range(usb):
-                bobs.append(Bob_Joystick_USB(f"USB Controller {i}", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
         except IndexError:
             pass
         if len(bobs) == num_players:
@@ -87,12 +85,17 @@ while mainLoop:
             zombie.get_step()
         zombie.paint(bobs[0].rect)
 
+    # Increase Difficulty
+    if random.randint(0, 1000) < 5:
+        difficulty += 1
+
+    print(difficulty)
     # Generate Zombie
-    if random.randint(0, 100) < 5:
+    if random.randint(0, 100 - difficulty) < 5:
         zombies.append(generate_new_zombie(0.1))
 
     # # Generate Zombie
-    if random.randint(0, 1000) < 5:
+    if random.randint(0, 1000 - 10 * difficulty) < 5:
         zombies.append(generate_new_zombie(0.3))
 
     # Bobs
