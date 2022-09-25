@@ -295,7 +295,15 @@ class Bob_Joystick_Bluetooth:
             return True
         return False
 
+
 class Zombie:
+
+    frequency = 400
+    timer = 0
+
+    speed_frequency = 2000
+    speed_timer = 0
+
     def __init__(self, rect, count, step, speed):
         self.rect = rect
         self.count = count

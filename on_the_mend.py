@@ -1,8 +1,9 @@
+import random
 import sys
 import pygame
 from pygame.locals import *
 import platform
-from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_Bluetooth, screen, screen_width, screen_height, new_bullet, Gun, generate_new_zombie, zombie_timer, zombie_frequency, Crosshair, paint_bullets
+from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_Bluetooth, screen, screen_width, screen_height, new_bullet, Gun, Zombie, generate_new_zombie, zombie_timer, zombie_frequency, Crosshair, paint_bullets
 
 pygame.init()
 
@@ -28,7 +29,7 @@ colors = ["red", "blue", "yellow", "pink", "green"]
 crosshairs = []
 guns = []
 for i in range(num_players):
-    guns.append(Gun(i, 1 / num_players, 600))
+    guns.append(Gun(i, 1 / num_players, 100))
     crosshairs.append(Crosshair(i, colors[i]))
 
 bobs = []
@@ -84,15 +85,13 @@ while mainLoop:
             zombie.get_step()
         zombie.paint(bobs[0].rect)
 
-    # # Generate Zombie
-    # if pygame.time.get_ticks() > zombie_timer:
-    #     zombie_timer += zombie_frequency
-    #     zombies.append(generate_new_zombie(0.14))
-    #
-    # # Generate Speed Zombie
-    # if pygame.time.get_ticks() > zombie_timer:
-    #     zombie_timer += zombie_frequency
-    #     zombies.append(generate_new_zombie(0.5))
+    # Generate Zombie
+    if random.randint(1, 100) > 95:
+        zombies.append(generate_new_zombie(0.1))
+
+    # Generate Zombie
+    if random.randint(1, 1000) > 995:
+        zombies.append(generate_new_zombie(0.3))
 
     # Bobs
     for bob in bobs:
