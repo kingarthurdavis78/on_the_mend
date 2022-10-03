@@ -34,6 +34,12 @@ shotgun_right = pygame.transform.scale(shotgun_right, (2 * unit_length, 2 * unit
 shotgun_left = pygame.image.load(gun_images / "shotgun-left.gif")
 shotgun_left = pygame.transform.scale(shotgun_left, (2 * unit_length, 2 * unit_length))
 
+minigun_right = pygame.image.load(gun_images / "minigun-right.gif")
+minigun_right = pygame.transform.scale(minigun_right, (2 * unit_length, 2 * unit_length))
+
+minigun_left = pygame.image.load(gun_images / "minigun-left.gif")
+minigun_left = pygame.transform.scale(minigun_left, (2 * unit_length, 2 * unit_length))
+
 # Load Zombie Pictures
 zombie_facing_right_left_step = pygame.image.load(zombie_images / "zombie-facing-right-left-foot.gif")
 zombie_facing_right_left_step = pygame.transform.scale(zombie_facing_right_left_step, (unit_length, 2 * unit_length))
@@ -57,6 +63,7 @@ colors_to_rgb["turquoise"] = (0, 255, 255)
 colors_to_rgb["orange"] = (255, 173, 0)
 colors_to_rgb["black"] = (0, 0, 0)
 
+standard_speed = 600
 
 # Calculate Magnitude of Vector
 def norm(dy, dx):
@@ -418,6 +425,13 @@ class Gun:
             self.reload_time = 2 * reload_time
             self.image = shotgun_right
             self.images = [shotgun_left, shotgun_right]
+        elif self.name == "minigun":
+            self.error = 10
+            self.bullet_per_shot = 1
+            self.speed = speed
+            self.reload_time = reload_time / 5
+            self.image = minigun_right
+            self.images = [minigun_left, minigun_right]
         self.rect = self.image.get_rect()
 
 
@@ -458,8 +472,8 @@ def generate_item(items, num_players):
     item = random.choice(items)
     x = random.randint(unit_length, screen_width - unit_length)
     y = random.randint(unit_length, screen_height - unit_length)
-    if item in "shotgun pistol":
-        return Item(Gun(None, item, 1 / num_players, 600), "gun", x, y)
+    if item in "shotgun pistol minigun":
+        return Item(Gun(None, item, 1 / num_players, standard_speed), "gun", x, y)
     elif item == "first-aid-kit":
         return Item(Health_Item(item, 25), "heal", x, y)
 
