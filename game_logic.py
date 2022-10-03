@@ -9,33 +9,12 @@ crosshair_images = Path(__file__).parent / "crosshair-images"
 zombie_images = Path(__file__).parent / "zombie-images"
 gun_images = Path(__file__).parent / "gun-images"
 
-
-
 # Square Root of 2
 root_two = math.sqrt(2)
 
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_width, screen_height = screen.get_size()
 unit_length = screen_width / 40
-
-# Load Bob Pictures
-bob_facing_right_still = pygame.image.load(bob_images / "blue-right-still.gif")
-bob_facing_right_still = pygame.transform.scale(bob_facing_right_still, (unit_length, 2 * unit_length))
-
-bob_facing_right_left_step = pygame.image.load(bob_images / "blue-right-left.gif")
-bob_facing_right_left_step = pygame.transform.scale(bob_facing_right_left_step, (unit_length, 2 * unit_length))
-
-bob_facing_right_right_step = pygame.image.load(bob_images / "blue-right-right.gif")
-bob_facing_right_right_step = pygame.transform.scale(bob_facing_right_right_step, (unit_length, 2 * unit_length))
-
-bob_facing_left_still = pygame.image.load(bob_images / "blue-left-right.gif")
-bob_facing_left_still = pygame.transform.scale(bob_facing_left_still, (unit_length, 2 * unit_length))
-
-bob_facing_left_left_step = pygame.image.load(bob_images / "blue-left-left.gif")
-bob_facing_left_left_step = pygame.transform.scale(bob_facing_left_left_step, (unit_length, 2 * unit_length))
-
-bob_facing_left_right_step = pygame.image.load(bob_images / "blue-left-right.gif")
-bob_facing_left_right_step = pygame.transform.scale(bob_facing_left_right_step, (unit_length, 2 * unit_length))
 
 # Guns
 pistol_right = pygame.image.load(gun_images / "pistol-right.gif")
@@ -49,7 +28,6 @@ shotgun_right = pygame.transform.scale(shotgun_right, (2 * unit_length, 2 * unit
 
 shotgun_left = pygame.image.load(gun_images / "shotgun-left.gif")
 shotgun_left = pygame.transform.scale(shotgun_left, (2 * unit_length, 2 * unit_length))
-
 
 # Load Zombie Pictures
 zombie_facing_right_left_step = pygame.image.load(zombie_images / "zombie-facing-right-left-foot.gif")
@@ -82,8 +60,9 @@ def norm(dy, dx):
 
 # Keyboard Bob
 class Bob:
-    def __init__(self, player_name, x, y, count, step, speed, gun, crosshair):
+    def __init__(self, player_name, color, x, y, count, step, speed, gun, crosshair):
         self.player_name = player_name
+        self.color = color
         self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
         self.count = count
         self.step = step
@@ -91,13 +70,15 @@ class Bob:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+                                            (unit_length, 2 * unit_length))
         self.crosshair = crosshair
         self.cross_dx = 0
         self.cross_dy = 0
         self.health = 100
         self.is_alive = True
         self.revive_count = 0
+        self.kill_count = 0
 
     def get_velocity(self, dt):
         if pygame.key.get_pressed()[K_w] and pygame.key.get_pressed()[K_d]:
@@ -132,33 +113,6 @@ class Bob:
         if pygame.key.get_pressed()[K_a] and pygame.key.get_pressed()[K_d]:
             self.velocity[0] = 0
 
-    def get_direction(self):
-        if pygame.mouse.get_pos()[0] < self.rect.center[0] and self.direction == "right":
-            self.direction = "left"
-            self.images = [bob_facing_left_still, bob_facing_left_left_step, bob_facing_left_right_step]
-            self.gun.image = self.gun.images[0]
-        if pygame.mouse.get_pos()[0] > self.rect.center[0] and self.direction == "left":
-            self.direction = "right"
-            self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
-            self.gun.image = self.gun.images[1]
-
-
-
-    def get_step(self):
-        if self.step == "left":
-            self.step = "right"
-        else:
-            self.step = "left"
-        self.count = 0
-
-    def paint(self):
-        if self.velocity == [0, 0]:
-            screen.blit(self.images[0], self.rect)
-        elif self.step == "left":
-            screen.blit(self.images[1], self.rect)
-        elif self.step == "right":
-            screen.blit(self.images[2], self.rect)
-
     def update_crosshair(self, stufff, stuff):
         self.crosshair.rect.center = pygame.mouse.get_pos()
         return stufff, stuff
@@ -168,27 +122,17 @@ class Bob:
             return True
         return False
 
-    def paint_health(self, index, num_players):
-        color = colors_to_rgb[self.crosshair.color]
-        pygame.draw.rect(screen, color, (index * int(screen_width / num_players), screen_height - int(screen_height / 20), int((self.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
-
-    def paint_revive(self, index, num_players):
-        pygame.draw.rect(screen, (0, 255, 0), (index * int(screen_width / num_players), screen_height - int(screen_height / 20), int((self.revive_count * (screen_width / num_players)) / 1000), int(screen_height / 20)))
-
     def revive(self, dead_bob):
         if self.rect.colliderect(dead_bob.rect) and pygame.key.get_pressed()[K_RETURN]:
             return True
         return False
 
 
-    def paint_gun(self):
-        self.gun.rect.center = self.rect.center
-        screen.blit(self.gun.image, self.gun.rect)
-
 # USB Controller Bob
 class Bob_Joystick_USB:
-    def __init__(self, player_name, x, y, count, step, speed, gun, joystick, crosshair):
+    def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
         self.player_name = player_name
+        self.color = color
         self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
         self.count = count
         self.step = step
@@ -196,7 +140,8 @@ class Bob_Joystick_USB:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+                                            (unit_length, 2 * unit_length))
         self.joystick = joystick
         self.crosshair = crosshair
         self.cross_dx = 1
@@ -204,12 +149,7 @@ class Bob_Joystick_USB:
         self.health = 100
         self.is_alive = True
         self.revive_count = 0
-
-    def x(self):
-        return self.rect.centerx
-
-    def y(self):
-        return self.rect.centery
+        self.kill_count = 0
 
     def get_velocity(self, dt):
         dx = self.joystick.get_axis(0)
@@ -224,47 +164,22 @@ class Bob_Joystick_USB:
             self.velocity = [self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)]
             self.count += dt
 
-    def get_direction(self):
-        if self.crosshair.rect.centerx < self.rect.centerx and self.direction == "right":
-            self.direction = "left"
-            self.images = [bob_facing_left_still, bob_facing_left_left_step, bob_facing_left_right_step]
-        if self.crosshair.rect.centerx > self.rect.centerx and self.direction == "left":
-            self.direction = "right"
-            self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
-
-    def get_step(self):
-        if self.step == "left":
-            self.step = "right"
-        else:
-            self.step = "left"
-        self.count = 0
-
-    def paint(self):
-        if self.velocity == [0, 0]:
-            screen.blit(self.images[0], self.rect)
-        elif self.step == "left":
-            screen.blit(self.images[1], self.rect)
-        elif self.step == "right":
-            screen.blit(self.images[2], self.rect)
-
     def update_crosshair(self, past_dx, past_dy):
         dx = self.joystick.get_axis(2)
         dy = self.joystick.get_axis(3)
         if abs(dx) < 0.05 and abs(dy) < 0.05:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx), self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
+                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
             return past_dx, past_dy
         else:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx), self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
+                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
             return dx, dy
 
     def shoot(self):
         if self.joystick.get_axis(5) > 0:
             return True
         return False
-
-    def paint_health(self, index, num_players):
-        color = colors_to_rgb[self.crosshair.color]
-        pygame.draw.rect(screen, color, (index * int(screen_width / num_players), screen_height - int(screen_height / 20), int((self.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
 
     def revive(self, dead_bob):
         dx = dead_bob.rect.centerx - self.rect.centerx
@@ -273,10 +188,12 @@ class Bob_Joystick_USB:
             return True
         return False
 
+
 # Xbox Controller Bob
 class Bob_Joystick_XboxOne:
-    def __init__(self, player_name, x, y, count, step, speed, gun, joystick, crosshair):
+    def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
         self.player_name = player_name
+        self.color = color
         self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
         self.count = count
         self.step = step
@@ -284,7 +201,8 @@ class Bob_Joystick_XboxOne:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+                                            (unit_length, 2 * unit_length))
         self.joystick = joystick
         self.crosshair = crosshair
         self.cross_dx = 1
@@ -292,12 +210,8 @@ class Bob_Joystick_XboxOne:
         self.health = 100
         self.is_alive = True
         self.revive_count = 0
+        self.kill_count = 0
 
-    def x(self):
-        return self.rect.centerx
-
-    def y(self):
-        return self.rect.centery
 
     def get_velocity(self, dt):
         dx = self.joystick.get_axis(0)
@@ -312,34 +226,12 @@ class Bob_Joystick_XboxOne:
             self.velocity = [self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)]
             self.count += dt
 
-    def get_direction(self):
-        if self.crosshair.rect.centerx < self.rect.centerx and self.direction == "right":
-            self.direction = "left"
-            self.images = [bob_facing_left_still, bob_facing_left_left_step, bob_facing_left_right_step]
-        if self.crosshair.rect.centerx >= self.rect.centerx and self.direction == "left":
-            self.direction = "right"
-            self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
-
-    def get_step(self):
-        if self.step == "left":
-            self.step = "right"
-        else:
-            self.step = "left"
-        self.count = 0
-
-    def paint(self):
-        if self.velocity == [0, 0]:
-            screen.blit(self.images[0], self.rect)
-        elif self.step == "left":
-            screen.blit(self.images[1], self.rect)
-        elif self.step == "right":
-            screen.blit(self.images[2], self.rect)
-
     def update_crosshair(self, past_dx, past_dy):
         dx = self.joystick.get_axis(3)
         dy = self.joystick.get_axis(4)
         if abs(dx) < 0.05 and abs(dy) < 0.05:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx), self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
+                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
             return past_dx, past_dy
         else:
             if dx == -1:
@@ -350,17 +242,14 @@ class Bob_Joystick_XboxOne:
                 dy = -math.sqrt(1 - pow(dx, 2))
             elif dy == 1:
                 dy = math.sqrt(1 - pow(dx, 2))
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx), self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
+                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
             return dx, dy
 
     def shoot(self):
         if self.joystick.get_axis(5) > 0:
             return True
         return False
-
-    def paint_health(self, index, num_players):
-        color = colors_to_rgb[self.crosshair.color]
-        pygame.draw.rect(screen, color, (index * int(screen_width / num_players), screen_height - int(screen_height / 20), int((self.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
 
     def revive(self, dead_bob):
         dx = dead_bob.rect.centerx - self.rect.centerx
@@ -371,8 +260,9 @@ class Bob_Joystick_XboxOne:
 
 # Pro Controller Bob
 class Bob_Joystick_ProController:
-    def __init__(self, player_name, x, y, count, step, speed, gun, joystick, crosshair):
+    def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
         self.player_name = player_name
+        self.color = color
         self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
         self.count = count
         self.step = step
@@ -380,7 +270,8 @@ class Bob_Joystick_ProController:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+                                            (unit_length, 2 * unit_length))
         self.joystick = joystick
         self.crosshair = crosshair
         self.cross_dx = 1
@@ -388,12 +279,8 @@ class Bob_Joystick_ProController:
         self.health = 100
         self.is_alive = True
         self.revive_count = 0
+        self.kill_count = 0
 
-    def x(self):
-        return self.rect.centerx
-
-    def y(self):
-        return self.rect.centery
 
     def get_velocity(self, dt):
         dx = 2 * self.joystick.get_axis(0)
@@ -408,34 +295,12 @@ class Bob_Joystick_ProController:
             self.velocity = [self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)]
             self.count += dt
 
-    def get_direction(self):
-        if self.crosshair.rect.centerx < self.rect.centerx and self.direction == "right":
-            self.direction = "left"
-            self.images = [bob_facing_left_still, bob_facing_left_left_step, bob_facing_left_right_step]
-        if self.crosshair.rect.centerx >= self.rect.centerx and self.direction == "left":
-            self.direction = "right"
-            self.images = [bob_facing_right_still, bob_facing_right_left_step, bob_facing_right_right_step]
-
-    def get_step(self):
-        if self.step == "left":
-            self.step = "right"
-        else:
-            self.step = "left"
-        self.count = 0
-
-    def paint(self):
-        if self.velocity == [0, 0]:
-            screen.blit(self.images[0], self.rect)
-        elif self.step == "left":
-            screen.blit(self.images[1], self.rect)
-        elif self.step == "right":
-            screen.blit(self.images[2], self.rect)
-
     def update_crosshair(self, past_dx, past_dy):
         dx = self.joystick.get_axis(2)
         dy = self.joystick.get_axis(3)
         if abs(dx) < 0.35 and abs(dy) < 0.35:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx), self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
+                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
             return past_dx, past_dy
         else:
             if dx == -1:
@@ -446,17 +311,14 @@ class Bob_Joystick_ProController:
                 dy = -math.sqrt(1 - pow(dx, 2))
             elif dy == 1:
                 dy = math.sqrt(1 - pow(dx, 2))
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx), self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
+                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
             return dx, dy
 
     def shoot(self):
         if self.joystick.get_button(7) > 0:
             return True
         return False
-
-    def paint_health(self, index, num_players):
-        color = colors_to_rgb[self.crosshair.color]
-        pygame.draw.rect(screen, color, (index * int(screen_width / num_players), screen_height - int(screen_height / 20), int((self.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
 
     def revive(self, dead_bob):
         dx = dead_bob.rect.centerx - self.rect.centerx
@@ -467,7 +329,6 @@ class Bob_Joystick_ProController:
 
 
 class Zombie:
-
     frequency = 400
     timer = 0
 
@@ -480,12 +341,6 @@ class Zombie:
         self.step = step
         self.speed = speed
         self.health = 3
-
-    def x(self):
-        return self.rect.center[0]
-
-    def y(self):
-        return self.rect.center[1]
 
     def get_speed(self, bob_rect):
         dx = bob_rect.centerx - self.rect.centerx
@@ -529,31 +384,36 @@ class Zombie:
 
 
 class Bullet:
-    def __init__(self, velocity, speed, x, y):
+    def __init__(self, owner, velocity, speed, x, y):
+        self.owner = owner
         self.velocity = velocity
         self.speed = speed
-        self.rect = pygame.Rect((x, y), (unit_length/6, unit_length/6))
-
-    def x(self):
-        return self.rect.center[0]
-
-    def y(self):
-        return self.rect.center[1]
+        self.rect = pygame.Rect((x, y), (unit_length / 6, unit_length / 6))
 
     def paint(self):
         pygame.draw.rect(screen, (255, 255, 0), self.rect)
 
 
 class Gun:
-    def __init__(self, id, speed, reload_time):
-        self.id = id
-        self.speed = speed
+    def __init__(self, player_number, gun_type, speed, reload_time):
+        self.player_number = player_number
+        self.gun_type = gun_type
         self.reload_counter = 0
-        self.reload_time = reload_time
-        self.image = pistol_right
-        self.images = [pistol_left, pistol_right]
+        self.bullet_per_shot = 1
+        self.error = 0
+        if self.gun_type == "pistol":
+            self.speed = speed
+            self.reload_time = reload_time
+            self.image = pistol_right
+            self.images = [pistol_left, pistol_right]
+        elif self.gun_type == "shotgun":
+            self.error = 20
+            self.bullet_per_shot = 4
+            self.speed = speed
+            self.reload_time = 2 * reload_time
+            self.image = shotgun_right
+            self.images = [shotgun_left, shotgun_right]
         self.rect = self.image.get_rect()
-
 
 
 class Crosshair:
@@ -561,23 +421,71 @@ class Crosshair:
     def __init__(self, id, color):
         self.id = id
         self.color = color
-        self.image = pygame.transform.scale(pygame.image.load(crosshair_images / f"{color}_crosshair.gif"), (5 * unit_length / 6, 5 * unit_length / 6))
+        self.image = pygame.transform.scale(pygame.image.load(crosshair_images / f"{color}_crosshair.gif"),
+                                            (5 * unit_length / 6, 5 * unit_length / 6))
         self.rect = self.image.get_rect()
 
     def paint(self):
         screen.blit(self.image, self.rect)
 
 
+def paint_bob(self):
+    if self.velocity == [0, 0]:
+        self.image = pygame.transform.scale(
+            pygame.image.load(bob_images / f"{self.color}-{self.direction}-still.gif"),
+            (unit_length, 2 * unit_length))
+    else:
+        self.image = pygame.transform.scale(
+            pygame.image.load(bob_images / f"{self.color}-{self.direction}-{self.step}.gif"),
+            (unit_length, 2 * unit_length))
+    screen.blit(self.image, self.rect)
+
+
+def paint_gun(self):
+    self.gun.rect.center = self.rect.center
+    screen.blit(self.gun.image, self.gun.rect)
+
+
+def get_step(self):
+    if self.step == "left":
+        self.step = "right"
+    else:
+        self.step = "left"
+    self.count = 0
+
+
+def get_direction(self):
+    if self.crosshair.rect.centerx < self.rect.center[0] and self.direction == "right":
+        self.direction = "left"
+        self.gun.image = self.gun.images[0]
+    if self.crosshair.rect.centerx > self.rect.center[0] and self.direction == "left":
+        self.direction = "right"
+        self.gun.image = self.gun.images[1]
+
+
+def paint_health(bob, index, num_players):
+    color = colors_to_rgb[bob.crosshair.color]
+    pygame.draw.rect(screen, color, (
+        index * int(screen_width / num_players), screen_height - int(screen_height / 20),
+        int((bob.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
+
+
 def new_bullet(bob, speed):
+    bob.reload = 0
+    bullet_error_x = random.randint(-bob.gun.error, bob.gun.error) / 100
+    bullet_error_y = random.randint(-bob.gun.error, bob.gun.error) / 100
     dx = bob.crosshair.rect.centerx - bob.rect.centerx
     dy = bob.crosshair.rect.centery - bob.rect.centery
-    bob.reload = 0
-    bullet_vector = [3 * dx / norm(dy, dx), 3 * dy / norm(dy, dx)]
-    return Bullet(bullet_vector, speed, bob.rect.centerx, bob.rect.centery)
+    new_dx = dx / norm(dy, dx) + bullet_error_x
+    new_dy = dy / norm(dy, dx) + bullet_error_y
+    bullet_vector = [2.5 * new_dx / norm(new_dy, new_dx), 2.5 * new_dy / norm(new_dy, new_dx)]
+    return Bullet(bob, bullet_vector, speed, bob.rect.centerx, bob.rect.centery)
 
 
 def generate_new_zombie(speed):
-    side = random.choice(["top", "top", "top", "top", "bottom", "bottom", "bottom", "bottom", "left", "left", "left", "right", "right", "right"])
+    side = random.choice(
+        ["top", "top", "top", "top", "bottom", "bottom", "bottom", "bottom", "left", "left", "left", "right", "right",
+         "right"])
     if side == "top":
         x = random.randint(0, screen_width)
         y = -2 * unit_length
@@ -597,16 +505,17 @@ def generate_new_zombie(speed):
 def paint_bullets(bullets, zombies, dt):
     for bullet in bullets:
         deleted = False
-        if bullet.x() < 0 or bullet.x() > screen_width:
+        if bullet.rect.centerx < 0 or bullet.rect.centerx > screen_width:
             bullets.remove(bullet)
             del bullet
             continue
-        if bullet.y() < 0 or bullet.y() > screen_height:
+        if bullet.rect.centery < 0 or bullet.rect.centery > screen_height:
             bullets.remove(bullet)
             del bullet
             continue
         for zombie in zombies:
             if bullet.rect.colliderect(zombie.rect):
+                bullet.owner.kill_count += 1
                 bullets.remove(bullet)
                 del bullet
                 zombies.remove(zombie)
@@ -620,6 +529,6 @@ def paint_bullets(bullets, zombies, dt):
 
 
 def paint_revive(index, num_players, bob):
-    pygame.draw.rect(screen, (0, 255, 0), (index * int(screen_width / num_players), screen_height - int(screen_height / 20), int((bob.revive_count * (screen_width / num_players)) / 1000), int(screen_height / 20)))
-
-
+    pygame.draw.rect(screen, (0, 255, 0), (
+        index * int(screen_width / num_players), screen_height - int(screen_height / 20),
+        int((bob.revive_count * (screen_width / num_players)) / 1000), int(screen_height / 20)))

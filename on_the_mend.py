@@ -2,7 +2,7 @@ import random
 import sys
 import pygame
 from pygame.locals import *
-from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, generate_new_zombie, Crosshair, paint_bullets, paint_revive
+from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, paint_gun, generate_new_zombie, Crosshair, paint_bullets, get_step, get_direction, paint_bob, paint_health, paint_revive
 
 pygame.init()
 
@@ -18,26 +18,28 @@ mainLoop = True
 background = 150, 150, 150
 
 # System input
-keyboard_controls = int(sys.argv[1])
+keyboard_count = int(sys.argv[1])
 controller_count = int(sys.argv[2])
 
 
-num_players = keyboard_controls + controller_count
+num_players = keyboard_count + controller_count
 players_alive = num_players
 
 
 colors = ["red", "blue", "yellow", "pink", "turquoise", "orange", "black"]
+items = ["shotgun"]
+items_on_ground = []
 crosshairs = []
 guns = []
 for i in range(num_players):
-    guns.append(Gun(i, 1 / num_players, 500))
+    guns.append(Gun(i, "pistol", 1 / num_players, 500))
     crosshairs.append(Crosshair(i, colors[i]))
 
 bobs = []
 dead_bobs = []
 
-if keyboard_controls:
-    bobs.append(Bob("keys", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns.pop(0), crosshairs.pop(0)))
+if keyboard_count:
+    bobs.append(Bob("keys", colors.pop(0), screen_width / 2, screen_height / 2, 0, "left", 0.3, guns.pop(0), crosshairs.pop(0)))
 
 
 bullets = []
@@ -46,20 +48,23 @@ zombies = []
 connected = False
 died = False
 while mainLoop:
-
     # Initialize controllers
     if controller_count > 0 and len(bobs) <= num_players and not connected:
-        if pygame.joystick.get_count() + keyboard_controls >= num_players:
+        if pygame.joystick.get_count() + keyboard_count >= num_players:
             joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+
             for i in range(len(joysticks)):
+                if len(bobs) == num_players:
+                    break
                 if "wireless" in joysticks[i].get_name().lower():
+                    print(joysticks[i].get_name())
                     if "xbox" in joysticks[i].get_name().lower():
-                        bobs.append(Bob_Joystick_XboxOne(f"Xbox One Controller {i}", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
+                        bobs.append(Bob_Joystick_XboxOne(f"Xbox One Controller {i}", colors[i], screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
                     else:
-                        bobs.append(Bob_Joystick_ProController(f"Pro Controller {i}", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
+                        bobs.append(Bob_Joystick_ProController(f"Pro Controller {i}", colors[i], screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
 
                 else:
-                    bobs.append(Bob_Joystick_USB(f"USB Controller {i}", screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
+                    bobs.append(Bob_Joystick_USB(f"USB Controller {i}", colors[i], screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
 
         if len(bobs) == num_players:
             connected = True
@@ -91,11 +96,11 @@ while mainLoop:
         print(difficulty)
 
     # Generate Zombie
-    if random.randint(0, int(325 / num_players) - difficulty) < 5:
+    if random.randint(0, int(250 / num_players) - difficulty) < 5:
         zombies.append(generate_new_zombie(0.1))
 
     # Generate Speed Zombie
-    if random.randint(0, int(3250 / num_players) - 10 * difficulty) < 5:
+    if random.randint(0, int(2500 / num_players) - 10 * difficulty) < 5:
         zombies.append(generate_new_zombie(0.3))
 
     # Bobs
@@ -109,28 +114,29 @@ while mainLoop:
 
             # Paint health bar
             player_number = bobs.index(bob)
-            bob.paint_health(player_number, num_players)
+            paint_health(bob, player_number, num_players)
 
             # Update Bob
             bob.get_velocity(dt)
-            bob.get_direction()
+            get_direction(bob)
             # Walking Animation
             if bob.count > 200:
-                bob.get_step()
+                get_step(bob)
             bob.rect = bob.rect.move([v * dt for v in bob.velocity])
 
             # Paint bob
-            bob.paint()
+            paint_bob(bob)
 
             # Paint Gun
-            bob.paint_gun()
+            paint_gun(bob)
 
             # Bobs' Bullets
             bob.gun.speed = 1 / players_alive
             bob.gun.reload_counter += dt
             if bob.shoot() and bob.gun.reload_counter > bob.gun.reload_time:
                 bob.gun.reload_counter = 0
-                bullets.append(new_bullet(bob, bob.gun.speed))
+                for i in range(bob.gun.bullet_per_shot):
+                    bullets.append(new_bullet(bob, bob.gun.speed))
             bullets, zombies = paint_bullets(bullets, zombies, dt)
 
             # Bob's Crosshair
@@ -160,6 +166,7 @@ while mainLoop:
                 bob.is_alive = False
                 players_alive -= 1
                 dead_bobs.append(bob)
+                print(f"Kills: {bob.kill_count}")
 
         else:
             bob.paint()
