@@ -8,6 +8,7 @@ bob_images = Path(__file__).parent / "bob-images"
 crosshair_images = Path(__file__).parent / "crosshair-images"
 zombie_images = Path(__file__).parent / "zombie-images"
 gun_images = Path(__file__).parent / "gun-images"
+item_images = Path(__file__).parent / "item-images"
 
 # Square Root of 2
 root_two = math.sqrt(2)
@@ -15,6 +16,10 @@ root_two = math.sqrt(2)
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_width, screen_height = screen.get_size()
 unit_length = screen_width / 40
+
+# Health Kit
+health_kit_image = pygame.transform.scale(pygame.image.load(item_images / "first-aid-kit.gif"),
+                                            (5 * unit_length / 6, 5 * unit_length / 6))
 
 # Guns
 pistol_right = pygame.image.load(gun_images / "pistol-right.gif")
@@ -395,18 +400,18 @@ class Bullet:
 
 
 class Gun:
-    def __init__(self, player_number, gun_type, speed, reload_time):
+    def __init__(self, player_number, name, speed, reload_time):
         self.player_number = player_number
-        self.gun_type = gun_type
+        self.name = name
         self.reload_counter = 0
         self.bullet_per_shot = 1
         self.error = 0
-        if self.gun_type == "pistol":
+        if self.name == "pistol":
             self.speed = speed
             self.reload_time = reload_time
             self.image = pistol_right
             self.images = [pistol_left, pistol_right]
-        elif self.gun_type == "shotgun":
+        elif self.name == "shotgun":
             self.error = 20
             self.bullet_per_shot = 4
             self.speed = speed
@@ -427,6 +432,36 @@ class Crosshair:
 
     def paint(self):
         screen.blit(self.image, self.rect)
+
+
+class Item:
+    def __init__(self, item, type, x, y):
+        self.get = item
+        self.type = type
+        item.rect.centerx = x
+        item.rect.centery = y
+
+    def paint(self):
+        screen.blit(self.get.image, self.get.rect)
+
+
+class Health_Item:
+    def __init__(self, name, power):
+        self.name = name
+        self.power = power
+        self.image = pygame.transform.scale(pygame.image.load(item_images / f"{name}.gif"),
+                                            (5 * unit_length / 6, 5 * unit_length / 6))
+        self.rect = self.image.get_rect()
+
+
+def generate_item(items, num_players):
+    item = random.choice(items)
+    x = random.randint(unit_length, screen_width - unit_length)
+    y = random.randint(unit_length, screen_height - unit_length)
+    if item in "shotgun pistol":
+        return Item(Gun(None, item, 1 / num_players, 600), "gun", x, y)
+    elif item == "first-aid-kit":
+        return Item(Health_Item(item, 25), "heal", x, y)
 
 
 def paint_bob(self):

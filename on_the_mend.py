@@ -2,7 +2,7 @@ import random
 import sys
 import pygame
 from pygame.locals import *
-from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, paint_gun, generate_new_zombie, Crosshair, paint_bullets, get_step, get_direction, paint_bob, paint_health, paint_revive
+from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, paint_gun, generate_new_zombie, Crosshair, paint_bullets, get_step, get_direction, paint_bob, paint_health, paint_revive, Item, generate_item
 
 pygame.init()
 
@@ -27,8 +27,6 @@ players_alive = num_players
 
 
 colors = ["red", "blue", "yellow", "pink", "turquoise", "orange", "black"]
-items = ["shotgun"]
-items_on_ground = []
 crosshairs = []
 guns = []
 for i in range(num_players):
@@ -44,6 +42,11 @@ if keyboard_count:
 
 bullets = []
 zombies = []
+
+items = ["first-aid-kit"]
+gun_names = ["shotgun", "pistol"]
+items_on_ground = []
+last_spawn_time = 0
 
 connected = False
 died = False
@@ -106,6 +109,32 @@ while mainLoop:
     # Bobs
     for bob in bobs:
         if bob.is_alive:
+            player_number = bobs.index(bob)
+
+            # Spawn New Item
+            if bob.kill_count > 0 and bob.kill_count % 150 == 0 and pygame.time.get_ticks() - last_spawn_time > 10000:
+                last_spawn_time = pygame.time.get_ticks()
+                items_on_ground.append(generate_item(gun_names, num_players))
+            if bob.kill_count > 0 and bob.kill_count % 50 == 0 and pygame.time.get_ticks() - last_spawn_time > 10000:
+                last_spawn_time = pygame.time.get_ticks()
+                items_on_ground.append(generate_item(items, num_players))
+
+
+            # Items on ground
+            for item in items_on_ground:
+                item.paint()
+                if bob.rect.colliderect(item.get.rect):
+                    if item.type == "gun":
+                        item.get.player_number = player_number
+                        bob.gun = item.get
+                        if bob.direction == "left":
+                            bob.gun.image = bob.gun.images[0]
+                    elif item.type == "heal":
+                        bob.health += item.get.power
+                        if bob.health > 100:
+                            bob.health = 100
+                    items_on_ground.remove(item)
+
 
             # Check if bob loses health
             for zombie in zombies:
@@ -113,7 +142,6 @@ while mainLoop:
                     bob.health -= 1
 
             # Paint health bar
-            player_number = bobs.index(bob)
             paint_health(bob, player_number, num_players)
 
             # Update Bob
