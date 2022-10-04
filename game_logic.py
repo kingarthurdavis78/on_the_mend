@@ -53,6 +53,10 @@ zombie_facing_left_left_step = pygame.transform.scale(zombie_facing_left_left_st
 zombie_facing_left_right_step = pygame.image.load(zombie_images / "zombie-facing-left-right-foot.gif")
 zombie_facing_left_right_step = pygame.transform.scale(zombie_facing_left_right_step, (unit_length, 2 * unit_length))
 
+pygame.font.init()
+font = pygame.font.Font('freesansbold.ttf', 32)
+
+
 # Create Color Dictionary
 colors_to_rgb = {}
 colors_to_rgb["red"] = (255, 0, 0)
@@ -347,12 +351,13 @@ class Zombie:
     speed_frequency = 2000
     speed_timer = 0
 
-    def __init__(self, rect, count, step, speed):
+    def __init__(self, rect, count, step, speed, health):
         self.rect = rect
         self.count = count
         self.step = step
         self.speed = speed
-        self.health = 3
+        self.health = health
+        self.direction = None
 
     def get_speed(self, bob_rect):
         dx = bob_rect.centerx - self.rect.centerx
@@ -370,16 +375,21 @@ class Zombie:
         self.count = 0
 
     def paint(self, bob_rect):
-        if self.step == "left":
-            if bob_rect.centerx > self.rect.centerx:
+        if bob_rect.centerx > self.rect.centerx:
+            if self.step == "left":
                 screen.blit(zombie_facing_right_left_step, self.rect)
             else:
-                screen.blit(zombie_facing_left_left_step, self.rect)
-        else:
-            if bob_rect.centerx > self.rect.centerx:
                 screen.blit(zombie_facing_right_right_step, self.rect)
+            if self.health < 3:
+                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-right-{self.health}.gif"), (unit_length, 2 * unit_length)), self.rect)
+        else:
+            if self.step == "left":
+                screen.blit(zombie_facing_left_left_step, self.rect)
             else:
                 screen.blit(zombie_facing_left_right_step, self.rect)
+            if self.health < 3:
+                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-left-{self.health}.gif"), (unit_length, 2 * unit_length)), self.rect)
+
 
     def find_closest_bob(self, bobs):
         closest_bob = None
@@ -512,11 +522,29 @@ def get_direction(self):
         self.gun.image = self.gun.images[1]
 
 
+def paint_level(difficulty, win_level):
+    if difficulty == 0:
+        difficulty = 460
+    text = font.render(f'Level {difficulty} / {win_level}', True, (255, 255, 255), (150, 150, 150))
+    text_rect = text.get_rect()
+    text_rect.x = 0
+    text_rect.y = 0
+    screen.blit(text, text_rect)
+
+
+
 def paint_health(bob, index, num_players):
+    # Health Bar
     color = colors_to_rgb[bob.crosshair.color]
-    pygame.draw.rect(screen, color, (
+    health_bar = pygame.draw.rect(screen, color, (
         index * int(screen_width / num_players), screen_height - int(screen_height / 20),
         int((bob.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
+    # Player Stats
+    text = font.render(f'Player {index}: Kills: {bob.kill_count}', True, (255, 255, 255), (150, 150, 150))
+    text_rect = text.get_rect()
+    text_rect.x = health_bar.x
+    text_rect.y = health_bar.y - unit_length
+    screen.blit(text, text_rect)
 
 
 def new_bullet(bob, speed):
@@ -531,7 +559,7 @@ def new_bullet(bob, speed):
     return Bullet(bob, bullet_vector, speed, bob.rect.centerx, bob.rect.centery)
 
 
-def generate_new_zombie(speed):
+def generate_new_zombie(speed, health):
     side = random.choice(
         ["top", "top", "top", "top", "bottom", "bottom", "bottom", "bottom", "left", "left", "left", "right", "right",
          "right"])
@@ -548,7 +576,7 @@ def generate_new_zombie(speed):
         x = screen_width + unit_length
         y = random.randint(0, screen_height)
     rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
-    return Zombie(rect, 0, "left", speed)
+    return Zombie(rect, 0, "left", speed, health)
 
 
 def paint_bullets(bullets, zombies, dt):
@@ -564,11 +592,13 @@ def paint_bullets(bullets, zombies, dt):
             continue
         for zombie in zombies:
             if bullet.rect.colliderect(zombie.rect):
-                bullet.owner.kill_count += 1
+                zombie.health -= 1
+                if zombie.health <= 0:
+                    bullet.owner.kill_count += 1
+                    zombies.remove(zombie)
+                    del zombie
                 bullets.remove(bullet)
                 del bullet
-                zombies.remove(zombie)
-                del zombie
                 deleted = True
                 break
         if not deleted:

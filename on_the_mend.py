@@ -2,11 +2,11 @@ import random
 import sys
 import pygame
 from pygame.locals import *
-from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, paint_gun, generate_new_zombie, Crosshair, paint_bullets, get_step, get_direction, paint_bob, paint_health, paint_revive, standard_speed, generate_item
+from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, paint_gun, generate_new_zombie, Crosshair, paint_bullets, get_step, get_direction, paint_bob, paint_health, paint_revive, paint_level, standard_speed, generate_item
 
 pygame.init()
 
-difficulty = 0
+difficulty = 1
 clock = pygame.time.Clock()
 
 pygame.joystick.init()
@@ -44,10 +44,12 @@ bullets = []
 zombies = []
 
 items = ["first-aid-kit"]
-gun_names = ["shotgun", "minigun", "pistol"]
+gun_names = ["shotgun", "minigun"]
 items_on_ground = []
 last_spawn_time = 0
 
+win_level = 420
+win = False
 connected = False
 died = False
 while mainLoop:
@@ -82,6 +84,8 @@ while mainLoop:
     # Erase previous frame
     screen.fill(background)
 
+    paint_level(int(difficulty), win_level)
+
     # Zombies
     for zombie in zombies:
         close_bob = zombie.find_closest_bob(bobs)
@@ -94,17 +98,19 @@ while mainLoop:
         zombie.paint(close_bob.rect)
 
     # Increase Difficulty
-    if random.randint(0, 1000) < 5:
-        difficulty += 1
-        print(difficulty)
+    if random.randint(0, int(100 + difficulty)) < 5 and not win:
+        difficulty *= 1.01
+        if difficulty >= win_level:
+            difficulty = 0
+            win = True
 
     # Generate Zombie
-    if random.randint(0, int(250) - difficulty) < 5:
-        zombies.append(generate_new_zombie(0.1))
+    if difficulty and random.randint(0, int(500 - num_players * difficulty)) < 5:
+        zombies.append(generate_new_zombie(0.1, 3))
 
     # Generate Speed Zombie
-    if random.randint(0, int(2500) - 10 * difficulty) < 5:
-        zombies.append(generate_new_zombie(0.3))
+    if difficulty and random.randint(0, int(5000 - 10 * num_players * difficulty)) < 5:
+        zombies.append(generate_new_zombie(0.3, 1))
 
     # Bobs
     for bob in bobs:
@@ -112,10 +118,13 @@ while mainLoop:
             player_number = bobs.index(bob)
 
             # Spawn New Item
-            if bob.kill_count > 0 and bob.kill_count % 25 == 0 and pygame.time.get_ticks() - last_spawn_time > 10000:
+            if bob.kill_count == 65 and pygame.time.get_ticks() - last_spawn_time > 10000:
                 last_spawn_time = pygame.time.get_ticks()
-                items_on_ground.append(generate_item(gun_names, num_players))
-            if bob.kill_count > 0 and bob.kill_count % 21 == 0 and pygame.time.get_ticks() - last_spawn_time > 10000:
+                items_on_ground.append(generate_item(["shotgun"], num_players))
+            if bob.kill_count == 160 and pygame.time.get_ticks() - last_spawn_time > 10000:
+                last_spawn_time = pygame.time.get_ticks()
+                items_on_ground.append(generate_item(["minigun"], num_players))
+            if bob.kill_count > 0 and bob.kill_count % 40 == 0 and pygame.time.get_ticks() - last_spawn_time > 10000:
                 last_spawn_time = pygame.time.get_ticks()
                 items_on_ground.append(generate_item(items, num_players))
 
@@ -204,7 +213,9 @@ while mainLoop:
 
     pygame.display.update()
 
-    if pygame.key.get_pressed()[K_ESCAPE] or died:
+    if pygame.key.get_pressed()[K_ESCAPE] or died or (len(zombies) == 0 and win):
         break
 
+if win and len(zombies) == 0:
+    print('YOU WIN!!!')
 pygame.quit()
