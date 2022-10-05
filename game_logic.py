@@ -9,6 +9,8 @@ crosshair_images = Path(__file__).parent / "crosshair-images"
 zombie_images = Path(__file__).parent / "zombie-images"
 gun_images = Path(__file__).parent / "gun-images"
 item_images = Path(__file__).parent / "item-images"
+fonts = Path(__file__).parent / "fonts"
+
 
 # Square Root of 2
 root_two = math.sqrt(2)
@@ -54,7 +56,7 @@ zombie_facing_left_right_step = pygame.image.load(zombie_images / "zombie-facing
 zombie_facing_left_right_step = pygame.transform.scale(zombie_facing_left_right_step, (unit_length, 2 * unit_length))
 
 pygame.font.init()
-font = pygame.font.Font('freesansbold.ttf', 32)
+font = pygame.font.Font(str(fonts / "prstartk.ttf"), int(unit_length / 1.3))
 
 
 # Create Color Dictionary
@@ -524,7 +526,7 @@ def get_direction(self):
 
 def paint_level(difficulty, win_level):
     if difficulty == 0:
-        difficulty = 460
+        difficulty = win_level
     text = font.render(f'Level {difficulty} / {win_level}', True, (255, 255, 255), (150, 150, 150))
     text_rect = text.get_rect()
     text_rect.x = 0
@@ -540,7 +542,7 @@ def paint_health(bob, index, num_players):
         index * int(screen_width / num_players), screen_height - int(screen_height / 20),
         int((bob.health * (screen_width / num_players)) / 100), int(screen_height / 20)))
     # Player Stats
-    text = font.render(f'Player {index}: Kills: {bob.kill_count}', True, (255, 255, 255), (150, 150, 150))
+    text = font.render(f'Player {index + 1} Kills: {bob.kill_count}', True, (255, 255, 255), (150, 150, 150))
     text_rect = text.get_rect()
     text_rect.x = health_bar.x
     text_rect.y = health_bar.y - unit_length

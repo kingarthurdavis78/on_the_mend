@@ -48,7 +48,7 @@ gun_names = ["shotgun", "minigun"]
 items_on_ground = []
 last_spawn_time = 0
 
-win_level = 420
+win_level = 450
 win = False
 connected = False
 died = False
@@ -62,7 +62,6 @@ while mainLoop:
                 if len(bobs) == num_players:
                     break
                 if "wireless" in joysticks[i].get_name().lower():
-                    print(joysticks[i].get_name())
                     if "xbox" in joysticks[i].get_name().lower():
                         bobs.append(Bob_Joystick_XboxOne(f"Xbox One Controller {i}", colors[i], screen_width / 2, screen_height / 2, 0, "left", 0.3, guns[i], joysticks[i], crosshairs[i]))
                     else:
