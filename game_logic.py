@@ -10,6 +10,8 @@ zombie_images = Path(__file__).parent / "zombie-images"
 gun_images = Path(__file__).parent / "gun-images"
 item_images = Path(__file__).parent / "item-images"
 fonts = Path(__file__).parent / "fonts"
+gifs = Path(__file__).parent / "gifs"
+
 
 
 # Square Root of 2
@@ -17,7 +19,7 @@ root_two = math.sqrt(2)
 
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_width, screen_height = screen.get_size()
-unit_length = screen_width / 40
+unit_length = int(screen_width / 40)
 
 # Health Kit
 health_kit_image = pygame.transform.scale(pygame.image.load(item_images / "first-aid-kit.gif"),
@@ -69,7 +71,8 @@ colors_to_rgb["turquoise"] = (0, 255, 255)
 colors_to_rgb["orange"] = (255, 173, 0)
 colors_to_rgb["black"] = (0, 0, 0)
 
-standard_speed = 600
+standard_speed = 2.5
+standard_reload_time = 600
 
 # Calculate Magnitude of Vector
 def norm(dy, dx):
@@ -230,7 +233,6 @@ class Bob_Joystick_XboxOne:
         self.revive_count = 0
         self.kill_count = 0
 
-
     def get_velocity(self, dt):
         dx = self.joystick.get_axis(0)
         dy = self.joystick.get_axis(1)
@@ -354,6 +356,8 @@ class Zombie:
     speed_timer = 0
 
     def __init__(self, rect, count, step, speed, health):
+        self.on_fire = False
+        self.fire_gif = None
         self.rect = rect
         self.count = count
         self.step = step
@@ -377,21 +381,27 @@ class Zombie:
         self.count = 0
 
     def paint(self, bob_rect):
+        if self.on_fire:
+            rect = self.fire_gif.image.get_rect()
+            rect.centerx = self.rect.centerx
+            rect.y = self.rect.y - 2 * unit_length
+            screen.blit(self.fire_gif.image, rect)
         if bob_rect.centerx > self.rect.centerx:
             if self.step == "left":
                 screen.blit(zombie_facing_right_left_step, self.rect)
             else:
                 screen.blit(zombie_facing_right_right_step, self.rect)
-            if self.health < 3:
-                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-right-{self.health}.gif"), (unit_length, 2 * unit_length)), self.rect)
+            health_int = math.ceil(self.health)
+            if health_int < 3:
+                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-right-{health_int}.gif"), (unit_length, 2 * unit_length)), self.rect)
         else:
             if self.step == "left":
                 screen.blit(zombie_facing_left_left_step, self.rect)
             else:
                 screen.blit(zombie_facing_left_right_step, self.rect)
-            if self.health < 3:
-                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-left-{self.health}.gif"), (unit_length, 2 * unit_length)), self.rect)
-
+            health_int = math.ceil(self.health)
+            if 0 < health_int < 3:
+                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-left-{health_int}.gif"), (unit_length, 2 * unit_length)), self.rect)
 
     def find_closest_bob(self, bobs):
         closest_bob = None
@@ -408,14 +418,24 @@ class Zombie:
 
 
 class Bullet:
-    def __init__(self, owner, velocity, speed, x, y):
+    def __init__(self, owner, gif, velocity, x, y):
         self.owner = owner
         self.velocity = velocity
-        self.speed = speed
-        self.rect = pygame.Rect((x, y), (unit_length / 6, unit_length / 6))
+        self.gif = gif
+        if self.owner.gun.name == "flamethrower":
+            self.image = self.gif.image
+            self.rect = self.image.get_rect()
+            self.rect.center = x, y
+        else:
+            self.gif = None
+            self.rect = pygame.Rect((x, y), (unit_length / 6, unit_length / 6))
 
     def paint(self):
-        pygame.draw.rect(screen, (255, 255, 0), self.rect)
+        if self.gif is None:
+            pygame.draw.rect(screen, (255, 255, 0), self.rect)
+        else:
+            self.image = self.gif.image
+            screen.blit(self.image, self.rect)
 
 
 class Gun:
@@ -430,6 +450,7 @@ class Gun:
             self.reload_time = reload_time
             self.image = pistol_right
             self.images = [pistol_left, pistol_right]
+            self.damage = 1
         elif self.name == "shotgun":
             self.error = 20
             self.bullet_per_shot = 4
@@ -437,6 +458,7 @@ class Gun:
             self.reload_time = 2 * reload_time
             self.image = shotgun_right
             self.images = [shotgun_left, shotgun_right]
+            self.damage = 1
         elif self.name == "minigun":
             self.error = 10
             self.bullet_per_shot = 1
@@ -444,6 +466,15 @@ class Gun:
             self.reload_time = reload_time / 5
             self.image = minigun_right
             self.images = [minigun_left, minigun_right]
+            self.damage = 1
+        elif self.name == "flamethrower":
+            self.error = 15
+            self.bullet_per_shot = 5
+            self.speed = speed / 6
+            self.reload_time = reload_time / 50
+            self.image = minigun_right
+            self.images = [minigun_left, minigun_right]
+            self.damage = 0.01
         self.rect = self.image.get_rect()
 
 
@@ -480,12 +511,32 @@ class Health_Item:
         self.rect = self.image.get_rect()
 
 
+class Gif:
+    def __init__(self, name, frame_rate, num_frames, x_len, y_len):
+        self.name = name
+        self.frame_rate = frame_rate
+        self.time_since_last_frame = 0
+        self.frame_number = 0
+        self.num_frames = num_frames
+        self.images = [pygame.transform.scale(pygame.image.load(gifs / f"{name}-{i}.gif"), (x_len, y_len)) for i in range(num_frames)]
+        self.image = self.images[0]
+
+    def update_frame(self, dt):
+        self.time_since_last_frame += dt
+        if self.frame_rate < self.time_since_last_frame:
+            self.time_since_last_frame = 0
+            self.frame_number += 1
+            if self.frame_number == self.num_frames:
+                self.frame_number = 0
+        self.image = self.images[self.frame_number]
+
+
 def generate_item(items, num_players):
     item = random.choice(items)
     x = random.randint(unit_length, screen_width - unit_length)
     y = random.randint(unit_length, screen_height - unit_length)
     if item in "shotgun pistol minigun":
-        return Item(Gun(None, item, 1 / num_players, standard_speed), "gun", x, y)
+        return Item(Gun(None, item, standard_speed / num_players, standard_reload_time), "gun", x, y)
     elif item == "first-aid-kit":
         return Item(Health_Item(item, 25), "heal", x, y)
 
@@ -534,7 +585,6 @@ def paint_level(difficulty, win_level):
     screen.blit(text, text_rect)
 
 
-
 def paint_health(bob, index, num_players):
     # Health Bar
     color = colors_to_rgb[bob.crosshair.color]
@@ -549,7 +599,7 @@ def paint_health(bob, index, num_players):
     screen.blit(text, text_rect)
 
 
-def new_bullet(bob, speed):
+def new_bullet(bob, gifs):
     bob.reload = 0
     bullet_error_x = random.randint(-bob.gun.error, bob.gun.error) / 100
     bullet_error_y = random.randint(-bob.gun.error, bob.gun.error) / 100
@@ -557,8 +607,14 @@ def new_bullet(bob, speed):
     dy = bob.crosshair.rect.centery - bob.rect.centery
     new_dx = dx / norm(dy, dx) + bullet_error_x
     new_dy = dy / norm(dy, dx) + bullet_error_y
-    bullet_vector = [2.5 * new_dx / norm(new_dy, new_dx), 2.5 * new_dy / norm(new_dy, new_dx)]
-    return Bullet(bob, bullet_vector, speed, bob.rect.centerx, bob.rect.centery)
+    bullet_vector = [bob.gun.speed * new_dx / norm(new_dy, new_dx), bob.gun.speed * new_dy / norm(new_dy, new_dx)]
+    if bob.gun.name == "flamethrower":
+        new_fire = Gif("fire", 60, 4, (5 * unit_length / 6), (5 * unit_length / 6))
+        gifs.append(new_fire)
+        return Bullet(bob, new_fire, bullet_vector, bob.rect.centerx, bob.rect.centery)
+
+    else:
+        return Bullet(bob, None, bullet_vector, bob.rect.centerx, bob.rect.centery)
 
 
 def generate_new_zombie(speed, health):
@@ -581,20 +637,40 @@ def generate_new_zombie(speed, health):
     return Zombie(rect, 0, "left", speed, health)
 
 
-def paint_bullets(bullets, zombies, dt):
+def paint_bullets(bullets, zombies, dt, gifs):
     for bullet in bullets:
+        if bullet.owner.gun.name == "flamethrower":
+            bullet.velocity = [0.98 * v for v in bullet.velocity]
+            if norm(bullet.velocity[1], bullet.velocity[0]) < 0.1:
+                gifs.remove(bullet.gif)
+                del bullet.gif
+                bullets.remove(bullet)
+                del bullet
+                continue
         deleted = False
         if bullet.rect.centerx < 0 or bullet.rect.centerx > screen_width:
             bullets.remove(bullet)
+            gifs.remove(bullet.gif)
+            del bullet.gif
             del bullet
             continue
         if bullet.rect.centery < 0 or bullet.rect.centery > screen_height:
             bullets.remove(bullet)
+            gifs.remove(bullet.gif)
+            del bullet.gif
             del bullet
             continue
         for zombie in zombies:
             if bullet.rect.colliderect(zombie.rect):
-                zombie.health -= 1
+                if bullet.gif and bullet.gif.name == "fire":
+                    gifs.remove(bullet.gif)
+                    del bullet.gif
+                    if not zombie.on_fire:
+                        zombie.on_fire = True
+                        zombie_fire = Gif("on-fire", 120, 4, (4 * unit_length), (4 * unit_length))
+                        gifs.append(zombie_fire)
+                        zombie.fire_gif = zombie_fire
+                zombie.health -= bullet.owner.gun.damage
                 if zombie.health <= 0:
                     bullet.owner.kill_count += 1
                     zombies.remove(zombie)
@@ -604,7 +680,7 @@ def paint_bullets(bullets, zombies, dt):
                 deleted = True
                 break
         if not deleted:
-            bullet.rect = bullet.rect.move([v * dt * bullet.speed for v in bullet.velocity])
+            bullet.rect = bullet.rect.move([v * dt for v in bullet.velocity])
             bullet.paint()
     return bullets, zombies
 
