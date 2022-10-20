@@ -2,9 +2,14 @@ import random
 import sys
 import pygame
 from pygame.locals import *
-from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, paint_gun, generate_new_zombie, Crosshair, paint_bullets, get_step, get_direction, paint_bob, paint_health, paint_revive, paint_level, standard_speed, generate_item, Gif, unit_length
+from game_logic import Bob, Bob_Joystick_USB, Bob_Joystick_XboxOne, Bob_Joystick_ProController, screen, screen_width, screen_height, new_bullet, Gun, paint_gun, generate_new_zombie, Crosshair, paint_bullets, set_on_fire, get_step, get_direction, paint_bob, paint_health, paint_revive, paint_level, standard_speed, generate_item, norm, unit_length, spread_fire, play_sound
 
 pygame.init()
+
+pygame.mixer.init()
+pygame.mixer.Channel(0).set_volume(0.7)
+pygame.mixer.Channel(1).set_volume(0.2)
+play_sound("bleak.mp3", 0)
 
 difficulty = 1
 clock = pygame.time.Clock()
@@ -30,11 +35,12 @@ colors = ["red", "blue", "yellow", "pink", "turquoise", "orange", "black"]
 crosshairs = []
 guns = []
 for i in range(num_players):
-    guns.append(Gun(i, "flamethrower", standard_speed, 600))
+    guns.append(Gun(i, "pistol", standard_speed, 600))
     crosshairs.append(Crosshair(i, colors[i]))
 
 bobs = []
 dead_bobs = []
+
 
 if keyboard_count:
     bobs.append(Bob("keys", colors.pop(0), screen_width / 2, screen_height / 2, 0, "left", 0.3, guns.pop(0), crosshairs.pop(0)))
@@ -44,14 +50,14 @@ bullets = []
 zombies = []
 
 items = ["first-aid-kit"]
-gun_names = ["shotgun", "minigun"]
+gun_names = ["pistol", "minigun"]
 items_on_ground = []
 last_spawn_time = 0
 
 gifs = []
 
-
-win_level = 450
+endgame = 0
+win_level = 400
 win = False
 connected = False
 died = False
@@ -82,7 +88,6 @@ while mainLoop:
 
     # Time elapsed since last iteration
     dt = clock.tick(60)
-    print(dt)
 
     # Erase previous frame
     screen.fill(background)
@@ -95,9 +100,14 @@ while mainLoop:
 
     # Zombies
     for zombie in zombies:
-        if zombie.on_fire:
-            if random.randint(1, 50) < 5:
-                zombie.health -= 0.2
+        if zombie.on_fire > 0:
+            spread_fire(zombie, zombies, gifs)
+            if zombie.health > 1:
+                zombie.on_fire -= random.random()
+                zombie.health -= 0.02 * random.random()
+            else:
+                zombie.on_fire -= 1.2 * random.random()
+                zombie.health -= 0.01 * random.random()
             if zombie.health <= 0:
                 zombies.remove(zombie)
                 gifs.remove(zombie.fire_gif)
@@ -118,17 +128,21 @@ while mainLoop:
 
     # Increase Difficulty
     if random.randint(0, int(100 + difficulty)) < 5 and not win:
-        difficulty *= 1.01
-        if difficulty >= win_level:
+        difficulty *= 1.02
+        if difficulty >= win_level - 30 and not win:
+            difficulty = 380
+            endgame += 1
+            print(endgame)
+        if endgame > 50:
             difficulty = 0
             win = True
 
     # Generate Zombie
-    if difficulty and random.randint(0, int(500 - num_players * difficulty)) < 5:
+    if difficulty and random.randint(0, 400 - int(difficulty)) < 5:
         zombies.append(generate_new_zombie(0.1, 3))
 
-    # Generate Speed Zombie
-    if difficulty and random.randint(0, int(5000 - 10 * num_players * difficulty)) < 5:
+    # Generate Zoombie
+    if difficulty and random.randint(0, 4000 - 10 * int(difficulty)) < 5:
         zombies.append(generate_new_zombie(0.3, 1))
 
     # Bobs
@@ -136,15 +150,17 @@ while mainLoop:
         if bob.is_alive:
             player_number = bobs.index(bob)
 
-
             # Spawn New Item
-            if bob.kill_count == 65 and pygame.time.get_ticks() - last_spawn_time > 10000:
+            if bob.kill_count == 20 and pygame.time.get_ticks() - last_spawn_time > 10000:
                 last_spawn_time = pygame.time.get_ticks()
                 items_on_ground.append(generate_item(["shotgun"], num_players))
-            if bob.kill_count == 160 and pygame.time.get_ticks() - last_spawn_time > 10000:
+            if bob.kill_count == 80 and pygame.time.get_ticks() - last_spawn_time > 10000:
                 last_spawn_time = pygame.time.get_ticks()
                 items_on_ground.append(generate_item(["minigun"], num_players))
-            if bob.kill_count > 0 and bob.kill_count % 40 == 0 and pygame.time.get_ticks() - last_spawn_time > 10000:
+            if bob.kill_count == 120 and pygame.time.get_ticks() - last_spawn_time > 10000:
+                last_spawn_time = pygame.time.get_ticks()
+                items_on_ground.append(generate_item(["flamethrower"], num_players))
+            if bob.kill_count > 0 and bob.kill_count % 47 == 0 and pygame.time.get_ticks() - last_spawn_time > 10000:
                 last_spawn_time = pygame.time.get_ticks()
                 items_on_ground.append(generate_item(items, num_players))
 
@@ -169,6 +185,18 @@ while mainLoop:
             for zombie in zombies:
                 if bob.rect.colliderect(zombie.rect):
                     bob.health -= 1
+                    if zombie.on_fire:
+                        set_on_fire(bob, 1000, gifs)
+            if bob.on_fire > 0:
+                bob.health -= 0.1
+                bob.on_fire -= norm(dt * bob.velocity[1], dt * bob.velocity[0])
+            else:
+                bob.on_fire = 0
+                if bob.fire_gif != None:
+                    gifs.remove(bob.fire_gif)
+                    del bob.fire_gif
+                    bob.fire_gif = None
+
 
             # Paint health bar
             paint_health(bob, player_number, num_players)

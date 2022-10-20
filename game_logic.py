@@ -11,6 +11,7 @@ gun_images = Path(__file__).parent / "gun-images"
 item_images = Path(__file__).parent / "item-images"
 fonts = Path(__file__).parent / "fonts"
 gifs = Path(__file__).parent / "gifs"
+audio = Path(__file__).parent / "audio"
 
 
 
@@ -22,39 +23,39 @@ screen_width, screen_height = screen.get_size()
 unit_length = int(screen_width / 40)
 
 # Health Kit
-health_kit_image = pygame.transform.scale(pygame.image.load(item_images / "first-aid-kit.gif"),
+health_kit_image = pygame.transform.scale(pygame.image.load(item_images / "first-aid-kit.gif").convert_alpha(),
                                             (5 * unit_length / 6, 5 * unit_length / 6))
 
 # Guns
-pistol_right = pygame.image.load(gun_images / "pistol-right.gif")
+pistol_right = pygame.image.load(gun_images / "pistol-right.gif").convert_alpha()
 pistol_right = pygame.transform.scale(pistol_right, (2 * unit_length, 2 * unit_length))
 
-pistol_left = pygame.image.load(gun_images / "pistol-left.gif")
+pistol_left = pygame.image.load(gun_images / "pistol-left.gif").convert_alpha()
 pistol_left = pygame.transform.scale(pistol_left, (2 * unit_length, 2 * unit_length))
 
-shotgun_right = pygame.image.load(gun_images / "shotgun-right.gif")
+shotgun_right = pygame.image.load(gun_images / "shotgun-right.gif").convert_alpha()
 shotgun_right = pygame.transform.scale(shotgun_right, (2 * unit_length, 2 * unit_length))
 
-shotgun_left = pygame.image.load(gun_images / "shotgun-left.gif")
+shotgun_left = pygame.image.load(gun_images / "shotgun-left.gif").convert_alpha()
 shotgun_left = pygame.transform.scale(shotgun_left, (2 * unit_length, 2 * unit_length))
 
-minigun_right = pygame.image.load(gun_images / "minigun-right.gif")
+minigun_right = pygame.image.load(gun_images / "minigun-right.gif").convert_alpha()
 minigun_right = pygame.transform.scale(minigun_right, (2 * unit_length, 2 * unit_length))
 
-minigun_left = pygame.image.load(gun_images / "minigun-left.gif")
+minigun_left = pygame.image.load(gun_images / "minigun-left.gif").convert_alpha()
 minigun_left = pygame.transform.scale(minigun_left, (2 * unit_length, 2 * unit_length))
 
 # Load Zombie Pictures
-zombie_facing_right_left_step = pygame.image.load(zombie_images / "zombie-facing-right-left-foot.gif")
+zombie_facing_right_left_step = pygame.image.load(zombie_images / "zombie-facing-right-left-foot.gif").convert_alpha()
 zombie_facing_right_left_step = pygame.transform.scale(zombie_facing_right_left_step, (unit_length, 2 * unit_length))
 
-zombie_facing_right_right_step = pygame.image.load(zombie_images / "zombie-facing-right-right-foot.gif")
+zombie_facing_right_right_step = pygame.image.load(zombie_images / "zombie-facing-right-right-foot.gif").convert_alpha()
 zombie_facing_right_right_step = pygame.transform.scale(zombie_facing_right_right_step, (unit_length, 2 * unit_length))
 
-zombie_facing_left_left_step = pygame.image.load(zombie_images / "zombie-facing-left-left-foot.gif")
+zombie_facing_left_left_step = pygame.image.load(zombie_images / "zombie-facing-left-left-foot.gif").convert_alpha()
 zombie_facing_left_left_step = pygame.transform.scale(zombie_facing_left_left_step, (unit_length, 2 * unit_length))
 
-zombie_facing_left_right_step = pygame.image.load(zombie_images / "zombie-facing-left-right-foot.gif")
+zombie_facing_left_right_step = pygame.image.load(zombie_images / "zombie-facing-left-right-foot.gif").convert_alpha()
 zombie_facing_left_right_step = pygame.transform.scale(zombie_facing_left_right_step, (unit_length, 2 * unit_length))
 
 pygame.font.init()
@@ -91,7 +92,7 @@ class Bob:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
                                             (unit_length, 2 * unit_length))
         self.crosshair = crosshair
         self.cross_dx = 0
@@ -100,6 +101,8 @@ class Bob:
         self.is_alive = True
         self.revive_count = 0
         self.kill_count = 0
+        self.on_fire = 0
+        self.fire_gif = None
 
     def get_velocity(self, dt):
         if pygame.key.get_pressed()[K_w] and pygame.key.get_pressed()[K_d]:
@@ -161,7 +164,7 @@ class Bob_Joystick_USB:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
                                             (unit_length, 2 * unit_length))
         self.joystick = joystick
         self.crosshair = crosshair
@@ -171,6 +174,8 @@ class Bob_Joystick_USB:
         self.is_alive = True
         self.revive_count = 0
         self.kill_count = 0
+        self.on_fire = 0
+        self.fire_gif = None
 
     def get_velocity(self, dt):
         dx = self.joystick.get_axis(0)
@@ -222,7 +227,7 @@ class Bob_Joystick_XboxOne:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
                                             (unit_length, 2 * unit_length))
         self.joystick = joystick
         self.crosshair = crosshair
@@ -232,6 +237,8 @@ class Bob_Joystick_XboxOne:
         self.is_alive = True
         self.revive_count = 0
         self.kill_count = 0
+        self.on_fire = 0
+        self.fire_gif = None
 
     def get_velocity(self, dt):
         dx = self.joystick.get_axis(0)
@@ -290,7 +297,7 @@ class Bob_Joystick_ProController:
         self.velocity = [0, 0]
         self.gun = gun
         self.direction = "right"
-        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif"),
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
                                             (unit_length, 2 * unit_length))
         self.joystick = joystick
         self.crosshair = crosshair
@@ -300,6 +307,8 @@ class Bob_Joystick_ProController:
         self.is_alive = True
         self.revive_count = 0
         self.kill_count = 0
+        self.on_fire = 0
+        self.fire_gif = None
 
 
     def get_velocity(self, dt):
@@ -356,7 +365,7 @@ class Zombie:
     speed_timer = 0
 
     def __init__(self, rect, count, step, speed, health):
-        self.on_fire = False
+        self.on_fire = 0
         self.fire_gif = None
         self.rect = rect
         self.count = count
@@ -381,7 +390,7 @@ class Zombie:
         self.count = 0
 
     def paint(self, bob_rect):
-        if self.on_fire:
+        if self.on_fire > 0:
             rect = self.fire_gif.image.get_rect()
             rect.centerx = self.rect.centerx
             rect.y = self.rect.y - 2 * unit_length
@@ -393,7 +402,7 @@ class Zombie:
                 screen.blit(zombie_facing_right_right_step, self.rect)
             health_int = math.ceil(self.health)
             if health_int < 3:
-                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-right-{health_int}.gif"), (unit_length, 2 * unit_length)), self.rect)
+                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-right-{health_int}.gif").convert_alpha(), (unit_length, 2 * unit_length)), self.rect)
         else:
             if self.step == "left":
                 screen.blit(zombie_facing_left_left_step, self.rect)
@@ -401,7 +410,7 @@ class Zombie:
                 screen.blit(zombie_facing_left_right_step, self.rect)
             health_int = math.ceil(self.health)
             if 0 < health_int < 3:
-                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-left-{health_int}.gif"), (unit_length, 2 * unit_length)), self.rect)
+                screen.blit(pygame.transform.scale(pygame.image.load(zombie_images / f"blood-left-{health_int}.gif").convert_alpha(), (unit_length, 2 * unit_length)), self.rect)
 
     def find_closest_bob(self, bobs):
         closest_bob = None
@@ -474,7 +483,7 @@ class Gun:
             self.reload_time = reload_time / 50
             self.image = minigun_right
             self.images = [minigun_left, minigun_right]
-            self.damage = 0.01
+            self.damage = 0.1
         self.rect = self.image.get_rect()
 
 
@@ -483,7 +492,7 @@ class Crosshair:
     def __init__(self, id, color):
         self.id = id
         self.color = color
-        self.image = pygame.transform.scale(pygame.image.load(crosshair_images / f"{color}_crosshair.gif"),
+        self.image = pygame.transform.scale(pygame.image.load(crosshair_images / f"{color}_crosshair.gif").convert_alpha(),
                                             (5 * unit_length / 6, 5 * unit_length / 6))
         self.rect = self.image.get_rect()
 
@@ -506,7 +515,7 @@ class Health_Item:
     def __init__(self, name, power):
         self.name = name
         self.power = power
-        self.image = pygame.transform.scale(pygame.image.load(item_images / f"{name}.gif"),
+        self.image = pygame.transform.scale(pygame.image.load(item_images / f"{name}.gif").convert_alpha(),
                                             (5 * unit_length / 6, 5 * unit_length / 6))
         self.rect = self.image.get_rect()
 
@@ -518,7 +527,7 @@ class Gif:
         self.time_since_last_frame = 0
         self.frame_number = 0
         self.num_frames = num_frames
-        self.images = [pygame.transform.scale(pygame.image.load(gifs / f"{name}-{i}.gif"), (x_len, y_len)) for i in range(num_frames)]
+        self.images = [pygame.transform.scale(pygame.image.load(gifs / f"{name}-{i}.gif").convert_alpha(), (x_len, y_len)) for i in range(num_frames)]
         self.image = self.images[0]
 
     def update_frame(self, dt):
@@ -531,24 +540,60 @@ class Gif:
         self.image = self.images[self.frame_number]
 
 
+def play_sound(filename, channel):
+    pygame.mixer.Channel(channel).play(pygame.mixer.Sound(audio / filename))
+
+
+def set_on_fire(entity, intensity, gifs):
+    entity.on_fire = intensity
+    zombie_fire = Gif("on-fire", 120, 4, (4 * unit_length), (4 * unit_length))
+    gifs.append(zombie_fire)
+    entity.fire_gif = zombie_fire
+
+
+def get_distance(entity1, entity2):
+    x1 = entity1.rect.centerx
+    x2 = entity2.rect.centerx
+    dx = x1 - x2
+    y1 = entity1.rect.centery
+    y2 = entity2.rect.centery
+    dy = y1 - y2
+    return norm(dy, dx)
+
+
+def spread_fire(entity, zombies, gifs):
+    for zombie in zombies:
+        distance = get_distance(entity, zombie)
+        if distance < screen_width / 10 and random.random() < 0.01:
+            if zombie.on_fire > 0:
+                pass
+            else:
+                set_on_fire(zombie, 100, gifs)
+
+
 def generate_item(items, num_players):
     item = random.choice(items)
     x = random.randint(unit_length, screen_width - unit_length)
     y = random.randint(unit_length, screen_height - unit_length)
-    if item in "shotgun pistol minigun":
+    if item in "shotgun pistol minigun flamethrower":
         return Item(Gun(None, item, standard_speed / num_players, standard_reload_time), "gun", x, y)
     elif item == "first-aid-kit":
         return Item(Health_Item(item, 25), "heal", x, y)
 
 
 def paint_bob(self):
+    if self.on_fire > 0:
+        rect = self.fire_gif.image.get_rect()
+        rect.centerx = self.rect.centerx
+        rect.y = self.rect.y - 2 * unit_length
+        screen.blit(self.fire_gif.image, rect)
     if self.velocity == [0, 0]:
         self.image = pygame.transform.scale(
-            pygame.image.load(bob_images / f"{self.color}-{self.direction}-still.gif"),
+            pygame.image.load(bob_images / f"{self.color}-{self.direction}-still.gif").convert_alpha(),
             (unit_length, 2 * unit_length))
     else:
         self.image = pygame.transform.scale(
-            pygame.image.load(bob_images / f"{self.color}-{self.direction}-{self.step}.gif"),
+            pygame.image.load(bob_images / f"{self.color}-{self.direction}-{self.step}.gif").convert_alpha(),
             (unit_length, 2 * unit_length))
     screen.blit(self.image, self.rect)
 
@@ -600,6 +645,8 @@ def paint_health(bob, index, num_players):
 
 
 def new_bullet(bob, gifs):
+    if bob.gun.name != "flamethrower":
+        play_sound("pew.mp3", 1)
     bob.reload = 0
     bullet_error_x = random.randint(-bob.gun.error, bob.gun.error) / 100
     bullet_error_y = random.randint(-bob.gun.error, bob.gun.error) / 100
@@ -640,7 +687,7 @@ def generate_new_zombie(speed, health):
 def paint_bullets(bullets, zombies, dt, gifs):
     for bullet in bullets:
         if bullet.owner.gun.name == "flamethrower":
-            bullet.velocity = [0.98 * v for v in bullet.velocity]
+            bullet.velocity = [0.985 * v for v in bullet.velocity]
             if norm(bullet.velocity[1], bullet.velocity[0]) < 0.1:
                 gifs.remove(bullet.gif)
                 del bullet.gif
@@ -650,14 +697,16 @@ def paint_bullets(bullets, zombies, dt, gifs):
         deleted = False
         if bullet.rect.centerx < 0 or bullet.rect.centerx > screen_width:
             bullets.remove(bullet)
-            gifs.remove(bullet.gif)
-            del bullet.gif
+            if bullet.gif:
+                gifs.remove(bullet.gif)
+                del bullet.gif
             del bullet
             continue
         if bullet.rect.centery < 0 or bullet.rect.centery > screen_height:
             bullets.remove(bullet)
-            gifs.remove(bullet.gif)
-            del bullet.gif
+            if bullet.gif:
+                gifs.remove(bullet.gif)
+                del bullet.gif
             del bullet
             continue
         for zombie in zombies:
@@ -665,11 +714,11 @@ def paint_bullets(bullets, zombies, dt, gifs):
                 if bullet.gif and bullet.gif.name == "fire":
                     gifs.remove(bullet.gif)
                     del bullet.gif
-                    if not zombie.on_fire:
-                        zombie.on_fire = True
-                        zombie_fire = Gif("on-fire", 120, 4, (4 * unit_length), (4 * unit_length))
-                        gifs.append(zombie_fire)
-                        zombie.fire_gif = zombie_fire
+                    if zombie.on_fire > 0:
+                        pass
+                    else:
+                        set_on_fire(zombie, 100, gifs)
+
                 zombie.health -= bullet.owner.gun.damage
                 if zombie.health <= 0:
                     bullet.owner.kill_count += 1
