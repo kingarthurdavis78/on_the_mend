@@ -83,7 +83,10 @@ def norm(dy, dx):
 
 def get_controller(joystick):
     class Controller:
-        if "wireless" in joystick.get_name().lower():
+        if joystick == "keys":
+            def sprinting(self):
+                return pygame.key.get_pressed()[K_LSHIFT]
+        elif "wireless" in joystick.get_name().lower():
             if "xbox" in joystick.get_name().lower():
                 # Xbox Controller
                 def move_x(self):
@@ -102,26 +105,34 @@ def get_controller(joystick):
                     return joystick.get_axis(5)
 
                 def revive_button(self):
-                    return joystick.get_button(0)
+                    return joystick.get_button(1)
+
+                def sprinting(self):
+                    return joystick.get_button(6)
+
             else:
                 # Switch Pro Controller
                 def move_x(self):
-                    return 2 * joystick.get_axis(0)
+                    return 0.35 * joystick.get_axis(0)
 
                 def move_y(self):
-                    return 2 * joystick.get_axis(1)
+                    return 0.35 * joystick.get_axis(1)
 
                 def aim_x(self):
-                    return joystick.get_axis(2)
+                    return 0.4 * joystick.get_axis(2)
 
                 def aim_y(self):
-                    return joystick.get_axis(3)
+                    return 0.4 * joystick.get_axis(3)
 
                 def trigger(self):
                     return joystick.get_button(7)
 
                 def revive_button(self):
                     return joystick.get_button(1)
+
+                def sprinting(self):
+                    return joystick.get_button(10)
+
         else:
             # USB Controller
             def move_x(self):
@@ -219,6 +230,7 @@ class Controller_Bob:
 class Bob:
     def __init__(self, player_name, color, x, y, count, step, speed, gun, crosshair):
         self.player_name = player_name
+        self.controller = get_controller(player_name)
         self.color = color
         self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
         self.count = count
@@ -283,212 +295,6 @@ class Bob:
 
     def revive(self, dead_bob):
         if self.rect.colliderect(dead_bob.rect) and pygame.key.get_pressed()[K_RETURN]:
-            return True
-        return False
-
-
-# USB Controller Bob
-class Bob_Joystick_USB:
-    def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
-        self.player_name = player_name
-        self.color = color
-        self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
-        self.count = count
-        self.step = step
-        self.speed = speed
-        self.velocity = [0, 0]
-        self.gun = gun
-        self.direction = "right"
-        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
-                                            (unit_length, 2 * unit_length))
-        self.joystick = joystick
-        self.crosshair = crosshair
-        self.cross_dx = 1
-        self.cross_dy = 0
-        self.health = 100
-        self.is_alive = True
-        self.revive_count = 0
-        self.kill_count = 0
-        self.on_fire = 0
-        self.fire_gif = None
-
-    def get_velocity(self, dt):
-        dx = self.joystick.get_axis(0)
-        dy = self.joystick.get_axis(1)
-        if abs(dx) < 0.05:
-            dx = 0
-        if abs(dy) < 0.05:
-            dy = 0
-        if norm(dy, dx) == 0:
-            self.velocity = [0, 0]
-        else:
-            self.velocity = [self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)]
-            self.count += dt
-
-    def update_crosshair(self, past_dx, past_dy):
-        dx = self.joystick.get_axis(2)
-        dy = self.joystick.get_axis(3)
-        if abs(dx) < 0.05 and abs(dy) < 0.05:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
-                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
-            return past_dx, past_dy
-        else:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
-                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
-            return dx, dy
-
-    def shoot(self):
-        if self.joystick.get_axis(5) > 0:
-            return True
-        return False
-
-    def revive(self, dead_bob):
-        dx = dead_bob.rect.centerx - self.rect.centerx
-        dy = dead_bob.rect.centery - self.rect.centery
-        if norm(dy, dx) < unit_length and self.joystick.get_button(0):
-            return True
-        return False
-
-
-# Xbox Controller Bob
-class Bob_Joystick_XboxOne:
-
-    def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
-        self.player_name = player_name
-        self.color = color
-        self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
-        self.count = count
-        self.step = step
-        self.speed = speed
-        self.velocity = [0, 0]
-        self.gun = gun
-        self.direction = "right"
-        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
-                                            (unit_length, 2 * unit_length))
-        self.joystick = joystick
-        self.crosshair = crosshair
-        self.cross_dx = 1
-        self.cross_dy = 0
-        self.health = 100
-        self.is_alive = True
-        self.revive_count = 0
-        self.kill_count = 0
-        self.on_fire = 0
-        self.fire_gif = None
-
-    def get_velocity(self, dt):
-        dx = self.joystick.get_axis(0)
-        dy = self.joystick.get_axis(1)
-        if abs(dx) < 0.05:
-            dx = 0
-        if abs(dy) < 0.05:
-            dy = 0
-        if norm(dy, dx) == 0:
-            self.velocity = [0, 0]
-        else:
-            self.velocity = [self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)]
-            self.count += dt
-
-    def update_crosshair(self, past_dx, past_dy):
-        dx = self.joystick.get_axis(3)
-        dy = self.joystick.get_axis(4)
-        if abs(dx) < 0.05 and abs(dy) < 0.05:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
-                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
-            return past_dx, past_dy
-        else:
-            if dx == -1:
-                dx = -math.sqrt(1 - pow(dy, 2))
-            elif dx == 1:
-                dx = math.sqrt(1 - pow(dy, 2))
-            elif dy == -1:
-                dy = -math.sqrt(1 - pow(dx, 2))
-            elif dy == 1:
-                dy = math.sqrt(1 - pow(dx, 2))
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
-                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
-            return dx, dy
-
-    def shoot(self):
-        if self.joystick.get_axis(5) > 0:
-            return True
-        return False
-
-    def revive(self, dead_bob):
-        dx = dead_bob.rect.centerx - self.rect.centerx
-        dy = dead_bob.rect.centery - self.rect.centery
-        if norm(dy, dx) < unit_length and self.joystick.get_button(0):
-            return True
-        return False
-
-# Pro Controller Bob
-class Bob_Joystick_ProController:
-    def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
-        self.player_name = player_name
-        self.color = color
-        self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
-        self.count = count
-        self.step = step
-        self.speed = speed
-        self.velocity = [0, 0]
-        self.gun = gun
-        self.direction = "right"
-        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
-                                            (unit_length, 2 * unit_length))
-        self.joystick = joystick
-        self.crosshair = crosshair
-        self.cross_dx = 1
-        self.cross_dy = 0
-        self.health = 100
-        self.is_alive = True
-        self.revive_count = 0
-        self.kill_count = 0
-        self.on_fire = 0
-        self.fire_gif = None
-
-
-    def get_velocity(self, dt):
-        dx = 2 * self.joystick.get_axis(0)
-        dy = 2 * self.joystick.get_axis(1)
-        if abs(dx) < 0.35:
-            dx = 0
-        if abs(dy) < 0.35:
-            dy = 0
-        if norm(dy, dx) == 0:
-            self.velocity = [0, 0]
-        else:
-            self.velocity = [self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)]
-            self.count += dt
-
-    def update_crosshair(self, past_dx, past_dy):
-        dx = self.joystick.get_axis(2)
-        dy = self.joystick.get_axis(3)
-        if abs(dx) < 0.35 and abs(dy) < 0.35:
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
-                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
-            return past_dx, past_dy
-        else:
-            if dx == -1:
-                dx = -math.sqrt(1 - pow(dy, 2))
-            elif dx == 1:
-                dx = math.sqrt(1 - pow(dy, 2))
-            elif dy == -1:
-                dy = -math.sqrt(1 - pow(dx, 2))
-            elif dy == 1:
-                dy = math.sqrt(1 - pow(dx, 2))
-            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
-                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
-            return dx, dy
-
-    def shoot(self):
-        if self.joystick.get_button(7) > 0:
-            return True
-        return False
-
-    def revive(self, dead_bob):
-        dx = dead_bob.rect.centerx - self.rect.centerx
-        dy = dead_bob.rect.centery - self.rect.centery
-        if norm(dy, dx) < unit_length and self.joystick.get_button(1):
             return True
         return False
 
@@ -872,7 +678,6 @@ def paint_bullets(bullets, zombies, bobs, dt, gifs):
         if not deleted:
             bullet.rect = bullet.rect.move([0.4 * v * dt for v in bullet.velocity])
             bullet.paint()
-    return bullets, zombies
 
 
 def paint_revive(index, num_players, bob):
