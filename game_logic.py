@@ -75,9 +75,144 @@ colors_to_rgb["black"] = (0, 0, 0)
 standard_speed = 2.5
 standard_reload_time = 600
 
+
 # Calculate Magnitude of Vector
 def norm(dy, dx):
     return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+
+
+def get_controller(joystick):
+    class Controller:
+        if "wireless" in joystick.get_name().lower():
+            if "xbox" in joystick.get_name().lower():
+                # Xbox Controller
+                def move_x(self):
+                    return joystick.get_axis(0)
+
+                def move_y(self):
+                    return joystick.get_axis(1)
+
+                def aim_x(self):
+                    return joystick.get_axis(3)
+
+                def aim_y(self):
+                    return joystick.get_axis(4)
+
+                def trigger(self):
+                    return joystick.get_axis(5)
+
+                def revive_button(self):
+                    return joystick.get_button(0)
+            else:
+                # Switch Pro Controller
+                def move_x(self):
+                    return 2 * joystick.get_axis(0)
+
+                def move_y(self):
+                    return 2 * joystick.get_axis(1)
+
+                def aim_x(self):
+                    return joystick.get_axis(2)
+
+                def aim_y(self):
+                    return joystick.get_axis(3)
+
+                def trigger(self):
+                    return joystick.get_button(7)
+
+                def revive_button(self):
+                    return joystick.get_button(1)
+        else:
+            # USB Controller
+            def move_x(self):
+                return joystick.get_axis(0)
+
+            def move_y(self):
+                return joystick.get_axis(1)
+
+            def aim_x(self):
+                return joystick.get_axis(2)
+
+            def aim_y(self):
+                return joystick.get_axis(3)
+
+            def trigger(self):
+                return joystick.get_axis(5)
+
+            def revive_button(self):
+                return joystick.get_button(0)
+    return Controller()
+
+
+# Controller Bob
+class Controller_Bob:
+    def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
+        self.player_name = player_name
+        self.controller = get_controller(joystick)
+        self.color = color
+        self.rect = pygame.Rect((x, y), (unit_length, 2 * unit_length))
+        self.count = count
+        self.step = step
+        self.speed = speed
+        self.velocity = [0, 0]
+        self.gun = gun
+        self.direction = "right"
+        self.image = pygame.transform.scale(pygame.image.load(bob_images / f"{color}-right-still.gif").convert_alpha(),
+                                            (unit_length, 2 * unit_length))
+        self.crosshair = crosshair
+        self.cross_dx = 1
+        self.cross_dy = 0
+        self.health = 100
+        self.is_alive = True
+        self.revive_count = 0
+        self.kill_count = 0
+        self.on_fire = 0
+        self.fire_gif = None
+
+    def get_velocity(self, dt):
+        dx = self.controller.move_x()
+        dy = self.controller.move_y()
+        if abs(dx) < 0.05:
+            dx = 0
+        if abs(dy) < 0.05:
+            dy = 0
+        if norm(dy, dx) == 0:
+            self.velocity = [0, 0]
+        else:
+            self.velocity = [self.speed * dx / norm(dy, dx), self.speed * dy / norm(dy, dx)]
+            self.count += dt
+
+    def update_crosshair(self, past_dx, past_dy):
+        dx = self.controller.aim_x()
+        dy = self.controller.aim_y()
+        if abs(dx) < 0.05 and abs(dy) < 0.05:
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * past_dx / norm(past_dy, past_dx),
+                                          self.rect.centery + 5 * unit_length * past_dy / norm(past_dy, past_dx)]
+            return past_dx, past_dy
+        else:
+            if dx == -1:
+                dx = -math.sqrt(1 - pow(dy, 2))
+            elif dx == 1:
+                dx = math.sqrt(1 - pow(dy, 2))
+            elif dy == -1:
+                dy = -math.sqrt(1 - pow(dx, 2))
+            elif dy == 1:
+                dy = math.sqrt(1 - pow(dx, 2))
+            self.crosshair.rect.center = [self.rect.centerx + 5 * unit_length * dx / norm(dy, dx),
+                                          self.rect.centery + 5 * unit_length * dy / norm(dy, dx)]
+            return dx, dy
+
+    def shoot(self):
+        if self.controller.trigger() > 0:
+            return True
+        return False
+
+    def revive(self, dead_bob):
+        dx = dead_bob.rect.centerx - self.rect.centerx
+        dy = dead_bob.rect.centery - self.rect.centery
+        if norm(dy, dx) < unit_length and self.controller.revive_button():
+            return True
+        return False
 
 
 # Keyboard Bob
@@ -217,6 +352,7 @@ class Bob_Joystick_USB:
 
 # Xbox Controller Bob
 class Bob_Joystick_XboxOne:
+
     def __init__(self, player_name, color, x, y, count, step, speed, gun, joystick, crosshair):
         self.player_name = player_name
         self.color = color
@@ -352,7 +488,7 @@ class Bob_Joystick_ProController:
     def revive(self, dead_bob):
         dx = dead_bob.rect.centerx - self.rect.centerx
         dy = dead_bob.rect.centery - self.rect.centery
-        if norm(dy, dx) < unit_length and self.joystick.get_button(0):
+        if norm(dy, dx) < unit_length and self.joystick.get_button(1):
             return True
         return False
 
@@ -363,6 +499,8 @@ class Zombie:
 
     speed_frequency = 2000
     speed_timer = 0
+
+    color = None
 
     def __init__(self, rect, count, step, speed, health):
         self.on_fire = 0
@@ -417,9 +555,7 @@ class Zombie:
         shortest_distance = 1000000000
         for bob in bobs:
             if bob.is_alive:
-                dx = bob.rect.centerx - self.rect.centerx
-                dy = bob.rect.centery - self.rect.centery
-                distance = math.sqrt(pow(dx, 2) + pow(dy, 2))
+                distance = get_distance(self, bob)
                 if distance < shortest_distance:
                     shortest_distance = distance
                     closest_bob = bob
@@ -431,6 +567,7 @@ class Bullet:
         self.owner = owner
         self.velocity = velocity
         self.gif = gif
+        self.time_on_screen = 0
         if self.owner.gun.name == "flamethrower":
             self.image = self.gif.image
             self.rect = self.image.get_rect()
@@ -479,11 +616,11 @@ class Gun:
         elif self.name == "flamethrower":
             self.error = 15
             self.bullet_per_shot = 5
-            self.speed = speed / 6
-            self.reload_time = reload_time / 50
+            self.speed = 0.5 * speed
+            self.reload_time = reload_time / 15
             self.image = minigun_right
             self.images = [minigun_left, minigun_right]
-            self.damage = 0.1
+            self.damage = 0.2
         self.rect = self.image.get_rect()
 
 
@@ -571,12 +708,12 @@ def spread_fire(entity, zombies, gifs):
                 set_on_fire(zombie, 100, gifs)
 
 
-def generate_item(items, num_players):
+def generate_item(items, account_for_lag):
     item = random.choice(items)
     x = random.randint(unit_length, screen_width - unit_length)
     y = random.randint(unit_length, screen_height - unit_length)
     if item in "shotgun pistol minigun flamethrower":
-        return Item(Gun(None, item, standard_speed / num_players, standard_reload_time), "gun", x, y)
+        return Item(Gun(None, item, standard_speed * account_for_lag, standard_reload_time), "gun", x, y)
     elif item == "first-aid-kit":
         return Item(Health_Item(item, 25), "heal", x, y)
 
@@ -684,12 +821,15 @@ def generate_new_zombie(speed, health):
     return Zombie(rect, 0, "left", speed, health)
 
 
-def paint_bullets(bullets, zombies, dt, gifs):
+def paint_bullets(bullets, zombies, bobs, dt, gifs):
+    opponents = zombies + bobs
     for bullet in bullets:
+        bullet.time_on_screen += dt
         if bullet.owner.gun.name == "flamethrower":
-            bullet.velocity = [0.985 * v for v in bullet.velocity]
-            if norm(bullet.velocity[1], bullet.velocity[0]) < 0.1:
-                gifs.remove(bullet.gif)
+            bullet.velocity = [(0.99) * v for v in bullet.velocity]
+            if bullet.time_on_screen > 1000:
+                if bullet.gif in gifs:
+                    gifs.remove(bullet.gif)
                 del bullet.gif
                 bullets.remove(bullet)
                 del bullet
@@ -709,27 +849,28 @@ def paint_bullets(bullets, zombies, dt, gifs):
                 del bullet.gif
             del bullet
             continue
-        for zombie in zombies:
-            if bullet.rect.colliderect(zombie.rect):
+        for opponent in opponents:
+            if bullet.rect.colliderect(opponent.rect) and bullet.owner.color != opponent.color:
                 if bullet.gif and bullet.gif.name == "fire":
                     gifs.remove(bullet.gif)
                     del bullet.gif
-                    if zombie.on_fire > 0:
+                    if opponent.on_fire > 0:
                         pass
                     else:
-                        set_on_fire(zombie, 100, gifs)
+                        set_on_fire(opponent, 100, gifs)
 
-                zombie.health -= bullet.owner.gun.damage
-                if zombie.health <= 0:
+                opponent.health -= bullet.owner.gun.damage
+                if opponent.health <= 0:
                     bullet.owner.kill_count += 1
-                    zombies.remove(zombie)
-                    del zombie
+                    if opponent in zombies:
+                        zombies.remove(opponent)
+                        del opponent
                 bullets.remove(bullet)
                 del bullet
                 deleted = True
                 break
         if not deleted:
-            bullet.rect = bullet.rect.move([v * dt for v in bullet.velocity])
+            bullet.rect = bullet.rect.move([0.4 * v * dt for v in bullet.velocity])
             bullet.paint()
     return bullets, zombies
 
@@ -738,3 +879,26 @@ def paint_revive(index, num_players, bob):
     pygame.draw.rect(screen, (0, 255, 0), (
         index * int(screen_width / num_players), screen_height - int(screen_height / 20),
         int((bob.revive_count * (screen_width / num_players)) / 1000), int(screen_height / 20)))
+
+
+def team_alive(team):
+    for player in team:
+        if player.is_alive:
+            return True
+    return False
+
+
+def winning_team(*args):
+    teams_alive = 0
+    the_winning_team = None
+    for team in args:
+        if team_alive(team):
+            the_winning_team = team
+            teams_alive += 1
+    if teams_alive == 0:
+        return "tie"
+    if teams_alive > 1:
+        return []
+    else:
+        return the_winning_team[0].color
+
