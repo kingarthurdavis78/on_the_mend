@@ -1,4 +1,4 @@
-# On the Mend - README
+# On the Mend
 
 ## Project Overview
 
