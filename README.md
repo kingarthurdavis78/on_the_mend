@@ -10,8 +10,6 @@
 2. [Getting Started](#getting-started)
 3. [Gameplay](#gameplay)
 4. [Controls](#controls)
-5. [Contributing](#contributing)
-6. [License](#license)
 
 ## Project Structure <a name="project-structure"></a>
 
